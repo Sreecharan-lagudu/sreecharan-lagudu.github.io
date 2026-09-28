@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sree Charan Lagudu — Data Science &amp; ML Portfolio</title>
+    <style>
+      :root {
+        --bg: #05070f;
+        --bg-soft: #0b1020;
+        --card: rgba(255, 255, 255, 0.04);
+        --card-border: rgba(255, 255, 255, 0.09);
+        --text: #e8ecf8;
+        --muted: #9aa5c4;
+        --accent: #4d8bff;
+        --accent2: #37e6c3;
+        --accent3: #a97bff;
+        --glow: rgba(77, 139, 255, 0.35);
+        --font: "Segoe UI", "SF Pro Display", system-ui, -apple-system, sans-serif;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        font-family: var(--font);
+        background: var(--bg);
+        color: var(--text);
+        overflow-x: hidden;
+        line-height: 1.6;
+      }
+      ::selection { background: var(--accent); color: #fff; }
+      ::-webkit-scrollbar { width: 10px; }
+      ::-webkit-scrollbar-track { background: var(--bg); }
+      ::-webkit-scrollbar-thumb { background: #26304f; border-radius: 5px; }
+
+      /* ---------- background layers ---------- */
+      #particles {
+        position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      }
+      .orb {
+        position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.5;
+        z-index: 0; pointer-events: none; animation: drift 18s ease-in-out infinite alternate;
+      }
+      .orb-1 { width: 480px; height: 480px; background: radial-gradient(circle, rgba(77,139,255,.35), transparent 65%); top: -140px; left: -120px; }
+      .orb-2 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(55,230,195,.22), transparent 65%); top: 30%; right: -160px; animation-delay: -6s; }
+      .orb-3 { width: 460px; height: 460px; background: radial-gradient(circle, rgba(169,123,255,.25), transparent 65%); bottom: -180px; left: 30%; animation-delay: -12s; }
+      @keyframes drift {
+        from { transform: translate(0, 0) scale(1); }
+        to { transform: translate(60px, 40px) scale(1.12); }
+      }
+
+      main { position: relative; z-index: 1; }
+
+      /* ---------- nav ---------- */
+      nav {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 18px 6vw;
+        background: rgba(5, 7, 15, 0.65);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+      }
+      .logo { font-weight: 800; font-size: 17px; letter-spacing: 0.5px; text-decoration: none; color: var(--text); }
+      .logo span { color: var(--accent); }
+      .nav-links { display: flex; gap: 26px; }
+      .nav-links a {
+        color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600;
+        transition: color 0.25s; position: relative;
+      }
+      .nav-links a::after {
+        content: ""; position: absolute; left: 0; bottom: -4px; height: 2px; width: 0;
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+        transition: width 0.3s;
+      }
+      .nav-links a:hover { color: var(--text); }
+      .nav-links a:hover::after { width: 100%; }
+
+      /* ---------- hero ---------- */
+      .hero {
+        min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
+        align-items: flex-start; padding: 120px 6vw 80px;
+      }
+      .eyebrow {
+        font-size: 14px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase;
+        color: var(--accent2); margin-bottom: 18px;
+        animation: fadeUp 0.9s ease both;
+      }
+      .hero h1 {
+        font-size: clamp(40px, 7vw, 76px); line-height: 1.08; font-weight: 800; letter-spacing: -1px;
+        animation: fadeUp 0.9s 0.15s ease both;
+      }
+      .hero h1 .grad {
+        background: linear-gradient(92deg, var(--accent) 10%, var(--accent3) 55%, var(--accent2) 95%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      .type-row { min-height: 1.4em; margin-top: 14px; font-size: clamp(18px, 2.6vw, 28px); color: var(--muted); font-weight: 500; animation: fadeUp 0.9s 0.3s ease both; }
+      .type-row .cursor { display: inline-block; width: 3px; height: 1.1em; background: var(--accent2); margin-left: 4px; vertical-align: text-bottom; animation: blink 0.9s steps(1) infinite; }
+      @keyframes blink { 50% { opacity: 0; } }
+      .hero p.sub {
+        margin-top: 22px; max-width: 640px; color: var(--muted); font-size: 17px;
+        animation: fadeUp 0.9s 0.45s ease both;
+      }
+      .cta-row { display: flex; gap: 14px; margin-top: 34px; flex-wrap: wrap; animation: fadeUp 0.9s 0.6s ease both; }
+      .btn {
+        display: inline-block; padding: 13px 26px; border-radius: 12px; font-weight: 700;
+        font-size: 15px; text-decoration: none; transition: transform 0.25s, box-shadow 0.25s;
+      }
+      .btn-primary {
+        background: linear-gradient(92deg, var(--accent), var(--accent3));
+        color: #fff; box-shadow: 0 8px 30px var(--glow);
+      }
+      .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 14px 40px var(--glow); }
+      .btn-ghost {
+        background: rgba(255,255,255,0.05); color: var(--text);
+        border: 1px solid var(--card-border);
+      }
+      .btn-ghost:hover { transform: translateY(-3px); background: rgba(255,255,255,0.09); }
+
+      .scroll-hint {
+        position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
+        color: var(--muted); font-size: 12px; letter-spacing: 2px; text-transform: uppercase;
+        display: flex; flex-direction: column; align-items: center; gap: 6px;
+      }
+      .scroll-hint .wheel {
+        width: 22px; height: 36px; border: 2px solid var(--muted); border-radius: 12px; position: relative;
+      }
+      .scroll-hint .wheel::after {
+        content: ""; position: absolute; top: 6px; left: 50%; margin-left: -3px;
+        width: 6px; height: 6px; border-radius: 50%; background: var(--accent2);
+        animation: wheel 1.6s ease infinite;
+      }
+      @keyframes wheel { 0% { opacity: 1; transform: translateY(0); } 70% { opacity: 0; transform: translateY(14px); } 100% { opacity: 0; } }
+
+      @keyframes fadeUp { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: translateY(0); } }
+
+      /* ---------- stats ---------- */
+      .stats {
+        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px; padding: 0 6vw; margin-top: -30px;
+      }
+      .stat {
+        background: var(--card); border: 1px solid var(--card-border); border-radius: 16px;
+        padding: 22px 24px; backdrop-filter: blur(8px);
+      }
+      .stat b { font-size: 30px; display: block; letter-spacing: -0.5px; }
+      .stat b em { font-style: normal; background: linear-gradient(92deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .stat span { color: var(--muted); font-size: 13px; letter-spacing: 0.4px; }
+
+      /* ---------- sections ---------- */
+      section { padding: 100px 6vw; max-width: 1200px; margin: 0 auto; }
+      .sec-title {
+        font-size: clamp(28px, 4vw, 42px); font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px;
+      }
+      .sec-title .grad {
+        background: linear-gradient(92deg, var(--accent), var(--accent2));
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+      }
+      .sec-sub { color: var(--muted); margin-bottom: 42px; font-size: 16px; max-width: 640px; }
+
+      .reveal { opacity: 0; transform: translateY(34px); transition: opacity 0.7s ease, transform 0.7s ease; }
+      .reveal.visible { opacity: 1; transform: translateY(0); }
+
+      /* ---------- about ---------- */
+      .about-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: center; }
+      .about-text p { color: var(--muted); font-size: 16.5px; margin-bottom: 16px; }
+      .about-text p strong { color: var(--text); }
+      .avatar-card {
+        background: linear-gradient(160deg, rgba(77,139,255,0.12), rgba(169,123,255,0.08));
+        border: 1px solid var(--card-border); border-radius: 24px; padding: 36px;
+        text-align: center; position: relative; overflow: hidden;
+      }
+      .avatar-card::before {
+        content: ""; position: absolute; inset: -60%;
+        background: conic-gradient(from 0deg, transparent 0deg, rgba(77,139,255,.25) 90deg, transparent 180deg);
+        animation: spin 7s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .avatar-inner { position: relative; background: var(--bg-soft); border-radius: 18px; padding: 30px; }
+      .monogram {
+        width: 86px; height: 86px; margin: 0 auto 16px; border-radius: 22px;
+        background: linear-gradient(135deg, var(--accent), var(--accent3));
+        display: flex; align-items: center; justify-content: center;
+        font-size: 34px; font-weight: 800; color: #fff; letter-spacing: 1px;
+        box-shadow: 0 10px 34px var(--glow);
+      }
+      .avatar-inner h3 { font-size: 18px; margin-bottom: 4px; }
+      .avatar-inner p { color: var(--muted); font-size: 13.5px; }
+      .loc { margin-top: 14px; font-size: 13px; color: var(--accent2); font-weight: 600; }
+
+      /* ---------- projects ---------- */
+      .proj-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
+      .proj {
+        position: relative; background: var(--card); border: 1px solid var(--card-border);
+        border-radius: 20px; padding: 28px; backdrop-filter: blur(8px);
+        transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+        display: flex; flex-direction: column; gap: 14px;
+      }
+      .proj:hover { transform: translateY(-8px); border-color: rgba(77,139,255,0.45); box-shadow: 0 20px 50px rgba(0,0,0,0.45), 0 0 0 1px rgba(77,139,255,0.15); }
+      .proj .icon { font-size: 34px; }
+      .proj h3 { font-size: 20px; letter-spacing: -0.3px; }
+      .proj p { color: var(--muted); font-size: 14.5px; flex-grow: 1; }
+      .proj.featured { grid-column: span 2; }
+      .live-badge {
+        position: absolute; top: 22px; right: 22px; display: inline-flex; align-items: center; gap: 7px;
+        background: rgba(55, 230, 195, 0.12); border: 1px solid rgba(55, 230, 195, 0.5);
+        color: var(--accent2); font-size: 11.5px; font-weight: 800; letter-spacing: 1.2px;
+        padding: 6px 12px; border-radius: 999px; text-transform: uppercase;
+      }
+      .live-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent2); animation: pulse 1.6s ease infinite; }
+      @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(55,230,195,0.6); } 55% { box-shadow: 0 0 0 7px rgba(55,230,195,0); } }
+      .chips { display: flex; flex-wrap: wrap; gap: 7px; }
+      .chip {
+        background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
+        color: var(--muted); font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+        transition: color 0.25s, border-color 0.25s, transform 0.25s;
+      }
+      .proj:hover .chip { animation: chipFloat 2.2s ease infinite; }
+      .chip:nth-child(2n) { animation-delay: 0.15s; }
+      .chip:nth-child(3n) { animation-delay: 0.3s; }
+      @keyframes chipFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+      .proj-links { display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
+      .proj-links a {
+        color: var(--accent); font-size: 13.5px; font-weight: 700; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 6px; transition: color 0.25s;
+      }
+      .proj-links a:hover { color: var(--accent2); }
+      .metric-row { display: flex; gap: 20px; flex-wrap: wrap; }
+      .metric b { font-size: 17px; color: var(--accent2); }
+      .metric span { display: block; color: var(--muted); font-size: 11.5px; letter-spacing: 0.5px; }
+
+      /* ---------- skills ---------- */
+      .skill-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
+      .skill-group {
+        background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; padding: 26px;
+        transition: transform 0.3s, border-color 0.3s;
+      }
+      .skill-group:hover { transform: translateY(-5px); border-color: rgba(169,123,255,0.4); }
+      .skill-group h3 { font-size: 15px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--accent3); margin-bottom: 16px; }
+      .skill-group .chips .chip { font-size: 13px; padding: 7px 14px; }
+      .skill-group .chip:hover { color: var(--text); border-color: var(--accent); transform: translateY(-2px); }
+
+      /* ---------- education ---------- */
+      .edu-card {
+        background: var(--card); border: 1px solid var(--card-border); border-radius: 18px;
+        padding: 28px; display: flex; gap: 20px; align-items: center;
+      }
+      .edu-card .badge {
+        min-width: 64px; height: 64px; border-radius: 16px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        display: flex; align-items: center; justify-content: center; font-size: 28px;
+      }
+      .edu-card h3 { font-size: 18px; }
+      .edu-card p { color: var(--muted); font-size: 14px; }
+
+      /* ---------- contact ---------- */
+      .contact-wrap { text-align: center; }
+      .contact-wrap h2 { font-size: clamp(30px, 4.5vw, 46px); font-weight: 800; letter-spacing: -0.5px; margin-bottom: 14px; }
+      .contact-wrap p { color: var(--muted); margin-bottom: 30px; font-size: 16px; }
+      .contact-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+      footer {
+        text-align: center; color: var(--muted); font-size: 13px; padding: 34px 6vw 44px;
+        border-top: 1px solid rgba(255,255,255,0.05);
+      }
+      footer a { color: var(--accent); text-decoration: none; }
+
+      @media (max-width: 860px) {
+        .about-grid { grid-template-columns: 1fr; }
+        .proj.featured { grid-column: span 1; }
+        .nav-links { display: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+        .reveal { opacity: 1; transform: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="particles"></canvas>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+
+    <nav>
+      <a class="logo" href="#top">sree<span>.</span>charan</a>
+      <div class="nav-links">
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#skills">Skills</a>
+        <a href="#education">Education</a>
+        <a href="#contact">Contact</a>
+      </div>
+    </nav>
+
+    <main id="top">
+      <header class="hero">
+        <div class="eyebrow">Hi, my name is</div>
+        <h1>Sree Charan Lagudu.<br /><span class="grad">I turn data into decisions.</span></h1>
+        <div class="type-row">&gt; <span id="typer"></span><span class="cursor"></span></div>
+        <p class="sub">
+          I build <strong>end-to-end machine learning systems</strong> — from Airflow ingestion pipelines
+          to live Streamlit demos — and I make every prediction <strong>explainable</strong>, because a
+          number without a reason helps nobody.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#projects">🚀 View my work</a>
+          <a class="btn btn-ghost" href="https://github.com/Sreecharan-lagudu" target="_blank" rel="noopener">🐙 GitHub</a>
+          <a class="btn btn-ghost" href="https://www.linkedin.com/in/sreecharan-lagudu/" target="_blank" rel="noopener">💼 LinkedIn</a>
+        </div>
+        <div class="scroll-hint"><div class="wheel"></div>scroll</div>
+      </header>
+
+      <div class="stats">
+        <div class="stat reveal"><b><em>2</em></b><span>Live ML demos deployed</span></div>
+        <div class="stat reveal"><b><em>9</em></b><span>GitHub repositories</span></div>
+        <div class="stat reveal"><b><em>91%</em></b><span>Peak model accuracy (water quality)</span></div>
+        <div class="stat reveal"><b><em>22</em></b><span>Sensor features engineered &amp; modeled</span></div>
+      </div>
+
+      <section id="about">
+        <h2 class="sec-title reveal">About <span class="grad">me</span></h2>
+        <p class="sec-sub reveal">Master's student in Data Science &amp; Analytics at EPITA, Paris — building real systems, not just notebooks.</p>
+        <div class="about-grid">
+          <div class="about-text reveal">
+            <p>
+              I'm a data science graduate student who believes a model isn't finished when the metrics look
+              good — it's finished when <strong>someone can use it, question it, and trust it</strong>.
+            </p>
+            <p>
+              My projects span the full lifecycle: <strong>ingestion with Airflow, validation with Great
+              Expectations, storage in PostgreSQL, serving through FastAPI, dashboards in Streamlit, and
+              monitoring with Grafana</strong>. I care about explainability (SHAP), honest metrics (AUC over
+              accuracy on imbalanced data), and security (credentials never in code).
+            </p>
+            <p>
+              When something breaks, I dig in — like the day a live demo's dataset turned out to contain
+              month names in a numeric column, and I traced it to a pandas 3 dtype change at 1 a.m.
+            </p>
+          </div>
+          <div class="avatar-card reveal">
+            <div class="avatar-inner">
+              <div class="monogram">SC</div>
+              <h3>Sree Charan Lagudu</h3>
+              <p>Data Science &amp; Analytics, MSc</p>
+              <div class="loc">📍 Paris, France</div>
+              <div class="loc">✦ Open to internships</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="projects">
+        <h2 class="sec-title reveal">Featured <span class="grad">projects</span></h2>
+        <p class="sec-sub reveal">Two are live — click a demo and try them yourself.</p>
+        <div class="proj-grid">
+          <article class="proj featured reveal">
+            <div class="live-badge"><span class="dot"></span>Live demo</div>
+            <div class="icon">💧</div>
+            <h3>Water Quality Prediction — MLOps Pipeline</h3>
+            <p>
+              A production-style pipeline: <strong>Airflow</strong> ingests raw CSV chunks on a schedule,
+              <strong>Great Expectations</strong> validates every record, and PostgreSQL routes clean vs.
+              suspect data into <strong>good_data_table / bad_data_table</strong>. A RandomForest model
+              (22 sensor features) is served via <strong>FastAPI</strong> and visualized in
+              <strong>Streamlit</strong>, with <strong>Grafana</strong> dashboards for monitoring.
+            </p>
+            <div class="metric-row">
+              <div class="metric"><b>91%</b><span>original model accuracy</span></div>
+              <div class="metric"><b>87.3%</b><span>live demo model (measured, published)</span></div>
+              <div class="metric"><b>7 stages</b><span>ingestion → monitoring</span></div>
+            </div>
+            <div class="chips">
+              <span class="chip">Python</span><span class="chip">Apache Airflow</span><span class="chip">PostgreSQL</span>
+              <span class="chip">FastAPI</span><span class="chip">Streamlit</span><span class="chip">Great Expectations</span>
+              <span class="chip">Grafana</span><span class="chip">scikit-learn</span>
+            </div>
+            <div class="proj-links">
+              <a href="https://water-quality-prediction-project.streamlit.app/" target="_blank" rel="noopener">▶ Try the live demo</a>
+              <a href="https://github.com/Sreecharan-lagudu/Water-Quality-Prediction---ML-Pipeline-Project" target="_blank" rel="noopener">⌨ View code</a>
+            </div>
+          </article>
+
+          <article class="proj featured reveal">
+            <div class="live-badge"><span class="dot"></span>Live demo</div>
+            <div class="icon">📉</div>
+            <h3>Customer Churn Predictor — Explainable AI</h3>
+            <p>
+              An end-to-end churn system on the IBM Telco dataset. Three models compared by
+              <strong>cross-validated AUC</strong> (class imbalance rules out accuracy), and every
+              prediction ships with a <strong>SHAP breakdown</strong> — so a retention team sees not just
+              <em>who</em> is at risk, but <em>what</em> drives the risk and what to do about it.
+            </p>
+            <div class="metric-row">
+              <div class="metric"><b>AUC-ranked</b><span>model selection</span></div>
+              <div class="metric"><b>73/27</b><span>class imbalance handled</span></div>
+              <div class="metric"><b>SHAP</b><span>per-customer explanations</span></div>
+            </div>
+            <div class="chips">
+              <span class="chip">Python</span><span class="chip">XGBoost</span><span class="chip">SHAP</span>
+              <span class="chip">scikit-learn</span><span class="chip">Streamlit</span><span class="chip">pandas</span>
+            </div>
+            <div class="proj-links">
+              <a href="https://sreecharan-churn-predictor.streamlit.app/" target="_blank" rel="noopener">▶ Try the live demo</a>
+              <a href="https://github.com/Sreecharan-lagudu/churn-predictor" target="_blank" rel="noopener">⌨ View code</a>
+            </div>
+          </article>
+
+          <article class="proj reveal">
+            <div class="icon">⚡</div>
+            <h3>EV Stocks — Global BI Analysis</h3>
+            <p>
+              Global electric-vehicle market analysis: KPIs, stock trends and interactive dashboards for
+              investment storytelling with data.
+            </p>
+            <div class="chips">
+              <span class="chip">SQL</span><span class="chip">Power BI</span><span class="chip">Data Viz</span><span class="chip">Excel</span>
+            </div>
+            <div class="proj-links">
+              <a href="https://github.com/Sreecharan-lagudu/BI-Project-Electric-Car-Stocks-Analysis" target="_blank" rel="noopener">⌨ View code</a>
+            </div>
+          </article>
+
+          <article class="proj reveal">
+            <div class="icon">🎯</div>
+            <h3>YOLOv10 — Real-Time Object Detection</h3>
+            <p>
+              Computer vision with the YOLOv10 architecture: training and inference pipelines for
+              detecting objects in images and video streams.
+            </p>
+            <div class="chips">
+              <span class="chip">Python</span><span class="chip">OpenCV</span><span class="chip">YOLOv10</span><span class="chip">PyTorch</span>
+            </div>
+            <div class="proj-links">
+              <a href="https://github.com/Sreecharan-lagudu/YOLOV10" target="_blank" rel="noopener">⌨ View code</a>
+            </div>
+          </article>
+
+          <article class="proj reveal">
+            <div class="icon">🧠</div>
+            <h3>NLP — Emotions Classification</h3>
+            <p>
+              Text classification of emotional tone: preprocessing pipelines, feature extraction and
+              model evaluation on an emotions dataset.
+            </p>
+            <div class="chips">
+              <span class="chip">Python</span><span class="chip">NLP</span><span class="chip">scikit-learn</span><span class="chip">pandas</span>
+            </div>
+            <div class="proj-links">
+              <a href="https://github.com/Sreecharan-lagudu/NLP_Emotions_Dataset_Exam" target="_blank" rel="noopener">⌨ View code</a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section id="skills">
+        <h2 class="sec-title reveal">Skills &amp; <span class="grad">toolbox</span></h2>
+        <p class="sec-sub reveal">Everything listed here is used in a real project above — nothing decorative.</p>
+        <div class="skill-groups">
+          <div class="skill-group reveal">
+            <h3>Machine Learning</h3>
+            <div class="chips">
+              <span class="chip">Python</span><span class="chip">pandas</span><span class="chip">NumPy</span>
+              <span class="chip">scikit-learn</span><span class="chip">XGBoost</span><span class="chip">SHAP</span>
+              <span class="chip">Matplotlib</span><span class="chip">EDA</span>
+            </div>
+          </div>
+          <div class="skill-group reveal">
+            <h3>MLOps &amp; Engineering</h3>
+            <div class="chips">
+              <span class="chip">Apache Airflow</span><span class="chip">FastAPI</span><span class="chip">Streamlit</span>
+              <span class="chip">PostgreSQL</span><span class="chip">Great Expectations</span>
+              <span class="chip">Grafana</span><span class="chip">Git / GitHub</span>
+            </div>
+          </div>
+          <div class="skill-group reveal">
+            <h3>Data &amp; BI</h3>
+            <div class="chips">
+              <span class="chip">SQL</span><span class="chip">Power BI</span><span class="chip">Excel</span>
+              <span class="chip">Data Visualization</span><span class="chip">Feature Engineering</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="education">
+        <h2 class="sec-title reveal">Edu<span class="grad">cation</span></h2>
+        <p class="sec-sub reveal"></p>
+        <div class="edu-card reveal">
+          <div class="badge">🎓</div>
+          <div>
+            <h3>MSc Data Science &amp; Analytics — EPITA</h3>
+            <p>Paris, France · focused on machine learning engineering, MLOps and business analytics</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="contact">
+        <div class="contact-wrap reveal">
+          <h2>Let's build something <span class="grad" style="background:linear-gradient(92deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;">data-driven</span>.</h2>
+          <p>
+            I'm open to data science &amp; ML internships in France and across Europe.<br />
+            The fastest way to see how I work is to try one of my live demos.
+          </p>
+          <div class="contact-btns">
+            <a class="btn btn-primary" href="https://www.linkedin.com/in/sreecharan-lagudu/" target="_blank" rel="noopener">💼 Connect on LinkedIn</a>
+            <a class="btn btn-ghost" href="https://github.com/Sreecharan-lagudu" target="_blank" rel="noopener">🐙 Follow on GitHub</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      © 2026 Sree Charan Lagudu · Hand-coded HTML, CSS &amp; JS — no frameworks, no templates ·
+      <a href="https://github.com/Sreecharan-lagudu" target="_blank" rel="noopener">GitHub</a>
+    </footer>
+
+    <script>
+      /* ---------- typewriter ---------- */
+      const roles = [
+        "Data Scientist",
+        "ML Engineer",
+        "MSc Data Science @ EPITA, Paris",
+        "MLOps enthusiast",
+      ];
+      const typer = document.getElementById("typer");
+      let ri = 0, ci = 0, deleting = false;
+      function tick() {
+        const word = roles[ri];
+        if (!deleting) {
+          ci++;
+          typer.textContent = word.slice(0, ci);
+          if (ci === word.length) { deleting = true; setTimeout(tick, 1800); return; }
+          setTimeout(tick, 55);
+        } else {
+          ci--;
+          typer.textContent = word.slice(0, ci);
+          if (ci === 0) { deleting = false; ri = (ri + 1) % roles.length; setTimeout(tick, 350); return; }
+          setTimeout(tick, 26);
+        }
+      }
+      tick();
+
+      /* ---------- scroll reveal ---------- */
+      const io = new IntersectionObserver(
+        (entries) => entries.forEach((e) => {
+          if (e.isIntersecting) { e.target.classList.add("visible"); io.unobserve(e.target); }
+        }),
+        { threshold: 0.12 }
+      );
+      document.querySelectorAll(".reveal").forEach((el, i) => {
+        el.style.transitionDelay = (i % 4) * 60 + "ms";
+        io.observe(el);
+      });
+
+      /* ---------- particle network ---------- */
+      const canvas = document.getElementById("particles");
+      const ctx = canvas.getContext("2d");
+      const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      let W, H, pts = [];
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+        const n = Math.min(90, Math.floor((W * H) / 22000));
+        pts = Array.from({ length: n }, () => ({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 0.35,
+          vy: (Math.random() - 0.5) * 0.35,
+        }));
+      }
+      function step() {
+        if (!reduced) {
+          ctx.clearRect(0, 0, W, H);
+          for (const p of pts) {
+            p.x += p.vx; p.y += p.vy;
+            if (p.x < 0 || p.x > W) p.vx *= -1;
+            if (p.y < 0 || p.y > H) p.vy *= -1;
+          }
+          for (let i = 0; i < pts.length; i++) {
+            for (let j = i + 1; j < pts.length; j++) {
+              const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y;
+              const d2 = dx * dx + dy * dy;
+              if (d2 < 12000) {
+                const a = (1 - d2 / 12000) * 0.28;
+                ctx.strokeStyle = "rgba(77,139,255," + a.toFixed(3) + ")";
+                ctx.beginPath();
+                ctx.moveTo(pts[i].x, pts[i].y);
+                ctx.lineTo(pts[j].x, pts[j].y);
+                ctx.stroke();
+              }
+            }
+          }
+          for (const p of pts) {
+            ctx.fillStyle = "rgba(160,200,255,0.75)";
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 1.4, 0, 6.2832);
+            ctx.fill();
+          }
+        }
+        requestAnimationFrame(step);
+      }
+      window.addEventListener("resize", resize);
+      resize();
+      if (!reduced) step();
+
+      /* ---------- nav background on scroll ---------- */
+      const nav = document.querySelector("nav");
+      window.addEventListener("scroll", () => {
+        nav.style.background = window.scrollY > 40
+          ? "rgba(5,7,15,0.85)"
+          : "rgba(5,7,15,0.65)";
+      }, { passive: true });
+    </script>
+  </body>
+</html>
