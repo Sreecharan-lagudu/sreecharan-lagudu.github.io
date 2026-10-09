@@ -1,942 +1,678 @@
 <!doctype html>
+<!-- v15: n8n-style dark one-page portfolio. Animated workflow-node hero, coral/purple accents, EN/FR. -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sree Charan Lagudu — Data Science &amp; ML Portfolio</title>
+    <meta name="description" content="Sree Charan Lagudu — Data Scientist & ML Engineer. Live ML demos, MLOps pipeline, explainable AI. Paris, France." />
+    <title>Sree Charan Lagudu — Data Scientist & ML Engineer</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
     <style>
-      :root {
-        --bg: #05070f;
-        --bg-soft: #0b1020;
-        --card: rgba(255, 255, 255, 0.04);
-        --card-border: rgba(255, 255, 255, 0.09);
-        --text: #e8ecf8;
-        --muted: #9aa5c4;
-        --accent: #4d8bff;
-        --accent2: #37e6c3;
-        --accent3: #a97bff;
-        --glow: rgba(77, 139, 255, 0.35);
-        --font: "Segoe UI", "SF Pro Display", system-ui, -apple-system, sans-serif;
-        --mono: "Cascadia Code", "SF Mono", Consolas, ui-monospace, Menlo, monospace;
-      }
       * { margin: 0; padding: 0; box-sizing: border-box; }
+      :root {
+        --bg: #0d1017; --card: #151927; --line: #272c40; --text: #eef0f8;
+        --muted: #a4abc4; --pink: #ea4b71; --purple: #8e6bff; --teal: #2fd6a5;
+        --grad: linear-gradient(93deg, #ea4b71 0%, #8e6bff 100%);
+      }
       html { scroll-behavior: smooth; }
-      body {
-        font-family: var(--font);
-        background: var(--bg);
-        color: var(--text);
-        overflow-x: hidden;
-        line-height: 1.6;
-      }
-      ::selection { background: var(--accent); color: #fff; }
-      ::-webkit-scrollbar { width: 10px; }
-      ::-webkit-scrollbar-track { background: var(--bg); }
-      ::-webkit-scrollbar-thumb { background: #26304f; border-radius: 5px; }
-
-      /* ---------- background layers ---------- */
-      #particles { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
-      .orb {
-        position: fixed; border-radius: 50%; filter: blur(90px); opacity: 0.5;
-        z-index: 0; pointer-events: none; animation: drift 18s ease-in-out infinite alternate;
-      }
-      .orb-1 { width: 480px; height: 480px; background: radial-gradient(circle, rgba(77,139,255,.35), transparent 65%); top: -140px; left: -120px; }
-      .orb-2 { width: 420px; height: 420px; background: radial-gradient(circle, rgba(55,230,195,.22), transparent 65%); top: 30%; right: -160px; animation-delay: -6s; }
-      .orb-3 { width: 460px; height: 460px; background: radial-gradient(circle, rgba(169,123,255,.25), transparent 65%); bottom: -180px; left: 30%; animation-delay: -12s; }
-      @keyframes drift {
-        from { transform: translate(0, 0) scale(1); }
-        to { transform: translate(60px, 40px) scale(1.12); }
-      }
-      main { position: relative; z-index: 1; }
-
-      /* ---------- pipeline spine ---------- */
-      #spine {
-        position: fixed; left: 0; top: 0; bottom: 0; width: 96px; z-index: 40;
-        display: flex; flex-direction: column; align-items: center;
-        padding: 90px 0 70px;
-      }
-      .spine-line {
-        position: absolute; left: 30px; top: 60px; bottom: 60px; width: 2px;
-        background: rgba(255,255,255,0.08); border-radius: 2px;
-      }
-      .spine-fill {
-        position: absolute; inset: 0; background: linear-gradient(180deg, var(--accent), var(--accent3), var(--accent2));
-        border-radius: 2px; transform-origin: top; transform: scaleY(0);
-        box-shadow: 0 0 12px var(--glow);
-      }
-      .spine-packets { position: absolute; left: 24px; top: 60px; bottom: 60px; width: 14px; }
-      .spine-packets i {
-        position: absolute; left: 2px; width: 10px; height: 10px; border-radius: 50%;
-        background: radial-gradient(circle at 35% 35%, #fff, var(--accent));
-        box-shadow: 0 0 14px 3px var(--glow);
-        animation: packet 9s linear infinite;
-      }
-      .spine-packets i:nth-child(2) { animation-delay: -3s; background: radial-gradient(circle at 35% 35%, #fff, var(--accent3)); }
-      .spine-packets i:nth-child(3) { animation-delay: -6s; background: radial-gradient(circle at 35% 35%, #fff, var(--accent2)); }
-      @keyframes packet {
-        0% { top: 0%; opacity: 0; }
-        8% { opacity: 1; }
-        92% { opacity: 1; }
-        100% { top: 100%; opacity: 0; }
-      }
-      .spine-nodes {
-        position: relative; display: flex; flex-direction: column; justify-content: space-between;
-        height: 100%;
-      }
-      .spine-node {
-        display: flex; flex-direction: column; align-items: center; gap: 6px;
-        text-decoration: none; width: 96px;
-      }
-      .sn-dot {
-        width: 12px; height: 12px; border-radius: 50%;
-        background: var(--bg); border: 2px solid rgba(255,255,255,0.25);
-        transition: all 0.35s;
-      }
-      .sn-stage { font-family: var(--mono); font-size: 10px; color: var(--muted); letter-spacing: 1px; }
-      .sn-name {
-        font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
-        color: var(--muted); writing-mode: vertical-rl; text-orientation: mixed;
-        transition: color 0.35s;
-      }
-      .spine-node.active .sn-dot {
-        border-color: var(--accent2); background: var(--accent2);
-        box-shadow: 0 0 16px rgba(55,230,195,0.8);
-      }
-      .spine-node.active .sn-name { color: var(--accent2); }
-      .spine-node.active .sn-stage { color: var(--text); }
+      body { font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+      ::selection { background: rgba(234, 75, 113, 0.35); }
+      a { color: inherit; text-decoration: none; }
+      ul { margin-left: 18px; }
+      .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+      section { padding: 96px 0; }
+      .eyebrow { text-transform: uppercase; letter-spacing: 2.5px; font-size: 12px; font-weight: 700; color: var(--pink); margin-bottom: 10px; }
+      h2.sec { font-size: clamp(1.7rem, 3.4vw, 2.4rem); font-weight: 800; letter-spacing: -0.02em; margin-bottom: 44px; }
+      .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
       /* ---------- nav ---------- */
-      nav {
-        position: fixed; top: 0; left: 0; right: 0; z-index: 50;
-        display: flex; justify-content: space-between; align-items: center;
-        padding: 16px 5vw 16px 116px;
-        background: rgba(5, 7, 15, 0.65);
-        backdrop-filter: blur(14px);
-        -webkit-backdrop-filter: blur(14px);
-        border-bottom: 1px solid rgba(255,255,255,0.06);
-      }
-      .logo { font-family: var(--mono); font-weight: 700; font-size: 16px; text-decoration: none; color: var(--text); letter-spacing: 0.5px; }
-      .logo span { color: var(--accent2); animation: blink 1.1s steps(1) infinite; }
-      @keyframes blink { 50% { opacity: 0; } }
-      .nav-links { display: flex; gap: 24px; }
-      .nav-links a {
-        color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600;
-        transition: color 0.25s; position: relative;
-      }
-      .nav-links a::after {
-        content: ""; position: absolute; left: 0; bottom: -4px; height: 2px; width: 0;
-        background: linear-gradient(90deg, var(--accent), var(--accent2));
-        transition: width 0.3s;
-      }
-      .nav-links a:hover { color: var(--text); }
-      .nav-links a:hover::after { width: 100%; }
-
-      /* ---------- stage tags ---------- */
-      .stage-tag {
-        font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: 2px;
-        color: var(--accent3); margin-bottom: 10px;
-      }
-      .stage-tag::before { content: "// "; color: var(--accent); }
+      #nav { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 22px; padding: 14px 28px; background: rgba(13, 16, 23, 0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); transition: background 0.3s; }
+      #nav.scrolled { background: rgba(13, 16, 23, 0.94); }
+      .brand { font-weight: 800; font-size: 17px; margin-right: auto; letter-spacing: -0.01em; }
+      .brand b { color: var(--pink); }
+      .nlink { color: var(--muted); font-size: 14px; font-weight: 500; transition: color 0.2s; }
+      .nlink:hover { color: var(--text); }
+      .langs { display: flex; gap: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 3px; }
+      .lang-btn { padding: 5px 13px; border-radius: 999px; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; background: none; border: none; font-family: inherit; transition: 0.2s; }
+      .lang-btn.active { background: var(--grad); color: #fff; }
+      @media (max-width: 880px) { .nlink { display: none; } }
 
       /* ---------- hero ---------- */
-      .hero {
-        min-height: 100vh; display: flex; flex-direction: column; justify-content: center;
-        padding: 120px 6vw 80px 116px;
-      }
-      .hero-grid { display: grid; grid-template-columns: 1.15fr 0.85fr; gap: 44px; align-items: center; }
-      .eyebrow {
-        font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 3px;
-        text-transform: uppercase; color: var(--accent2); margin-bottom: 18px;
-        animation: fadeUp 0.9s ease both;
-      }
-      .hero h1 {
-        font-size: clamp(38px, 5.4vw, 68px); line-height: 1.08; font-weight: 800; letter-spacing: -1px;
-        animation: fadeUp 0.9s 0.15s ease both;
-      }
-      .hero h1 .grad {
-        background: linear-gradient(92deg, var(--accent) 10%, var(--accent3) 55%, var(--accent2) 95%);
-        -webkit-background-clip: text; background-clip: text; color: transparent;
-      }
-      .type-row { min-height: 1.4em; margin-top: 14px; font-family: var(--mono); font-size: clamp(16px, 2vw, 22px); color: var(--muted); font-weight: 500; animation: fadeUp 0.9s 0.3s ease both; }
-      .type-row .cursor-t { display: inline-block; width: 10px; height: 1.05em; background: var(--accent2); margin-left: 4px; vertical-align: text-bottom; animation: blink 0.9s steps(1) infinite; }
-      .hero p.sub { margin-top: 22px; max-width: 560px; color: var(--muted); font-size: 16.5px; animation: fadeUp 0.9s 0.45s ease both; }
-      .cta-row { display: flex; gap: 14px; margin-top: 32px; flex-wrap: wrap; animation: fadeUp 0.9s 0.6s ease both; }
-      .btn {
-        display: inline-block; padding: 13px 26px; border-radius: 12px; font-weight: 700;
-        font-size: 15px; text-decoration: none; transition: transform 0.25s, box-shadow 0.25s;
-      }
-      .btn-primary { background: linear-gradient(92deg, var(--accent), var(--accent3)); color: #fff; box-shadow: 0 8px 30px var(--glow); }
-      .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 14px 40px var(--glow); }
-      .btn-ghost { background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--card-border); }
-      .btn-ghost:hover { transform: translateY(-3px); background: rgba(255,255,255,0.09); }
+      #hero { position: relative; min-height: 92vh; display: flex; align-items: center; overflow: hidden; border-bottom: 1px solid var(--line); }
+      #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+      .hero-inner { position: relative; z-index: 2; max-width: 1080px; margin: 0 auto; padding: 110px 24px 90px; }
+      .hero-eyebrow { display: inline-block; border: 1px solid var(--line); background: rgba(21, 25, 39, 0.7); border-radius: 999px; padding: 7px 16px; font-size: 12px; letter-spacing: 2px; color: var(--teal); text-transform: uppercase; font-weight: 700; }
+      h1 { font-size: clamp(2.4rem, 5.6vw, 4.2rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; margin: 26px 0 22px; max-width: 840px; }
+      .sub { color: var(--muted); font-size: 1.06rem; max-width: 660px; margin-bottom: 34px; }
+      .cta { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 28px; }
+      .btn { display: inline-flex; align-items: center; gap: 8px; border-radius: 999px; padding: 13px 26px; font-weight: 600; font-size: 15px; transition: 0.2s; font-family: inherit; }
+      .btn.grad { background: var(--grad); color: #fff; box-shadow: 0 8px 30px rgba(234, 75, 113, 0.35); }
+      .btn.grad:hover { transform: translateY(-2px); box-shadow: 0 12px 42px rgba(234, 75, 113, 0.5); }
+      .btn.ghost { border: 1px solid var(--line); color: var(--text); background: rgba(21, 25, 39, 0.5); }
+      .btn.ghost:hover { border-color: var(--pink); transform: translateY(-2px); }
+      .btn.sm { padding: 9px 18px; font-size: 13px; }
+      .trust { color: var(--muted); font-size: 0.95rem; }
 
-      /* live training viz */
-      .viz-card {
-        background: var(--card); border: 1px solid var(--card-border); border-radius: 20px;
-        padding: 16px; backdrop-filter: blur(8px);
-        animation: fadeUp 0.9s 0.55s ease both;
-        box-shadow: 0 24px 60px rgba(0,0,0,0.4);
-      }
-      .viz-head {
-        display: flex; justify-content: space-between; align-items: center;
-        font-family: var(--mono); font-size: 11.5px; color: var(--muted); padding: 2px 4px 10px;
-      }
-      .viz-head .rec { color: #ff6b81; letter-spacing: 1.5px; animation: blink 1.4s steps(1) infinite; }
-      .viz-card canvas { width: 100%; height: auto; display: block; border-radius: 12px; background: rgba(4,6,14,0.7); }
-      #trainstats {
-        font-family: var(--mono); font-size: 12px; color: var(--accent2); padding: 12px 4px 2px;
-        letter-spacing: 0.5px;
-      }
-
-      .scroll-hint {
-        position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
-        color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
-        display: flex; flex-direction: column; align-items: center; gap: 6px;
-      }
-      .scroll-hint .wheel { width: 22px; height: 36px; border: 2px solid var(--muted); border-radius: 12px; position: relative; }
-      .scroll-hint .wheel::after {
-        content: ""; position: absolute; top: 6px; left: 50%; margin-left: -3px;
-        width: 6px; height: 6px; border-radius: 50%; background: var(--accent2);
-        animation: wheel 1.6s ease infinite;
-      }
-      @keyframes wheel { 0% { opacity: 1; transform: translateY(0); } 70% { opacity: 0; transform: translateY(14px); } 100% { opacity: 0; } }
-      @keyframes fadeUp { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: translateY(0); } }
+      /* ---------- pipeline strip ---------- */
+      #pipe { padding: 34px 0 96px; }
+      .pipe-title { text-align: center; color: var(--muted); font-size: 0.98rem; margin-bottom: 30px; }
+      .pipe-track { display: flex; align-items: center; justify-content: flex-start; gap: 0; overflow-x: auto; padding: 10px 16px; }
+      .pnode { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 11px 17px; font-size: 13px; font-weight: 600; white-space: nowrap; flex: none; }
+      .pnode i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 9px; background: var(--pink); }
+      .pnode:nth-child(3) i { background: var(--purple); }
+      .pnode:nth-child(5) i { background: var(--teal); }
+      .pnode:nth-child(7) i { background: var(--pink); }
+      .pnode:nth-child(9) i { background: var(--purple); }
+      .pnode:nth-child(11) i { background: var(--teal); }
+      .plink { position: relative; width: 52px; height: 2px; background: var(--line); flex: none; }
+      .plink::after { content: ""; position: absolute; top: -2.5px; left: 0; width: 7px; height: 7px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 10px var(--teal); animation: flow 2.4s linear infinite; }
+      .plink:nth-of-type(2)::after { animation-delay: 1.2s; background: var(--pink); box-shadow: 0 0 10px var(--pink); }
+      .plink:nth-of-type(4)::after { animation-delay: 0.6s; background: var(--purple); box-shadow: 0 0 10px var(--purple); }
+      .plink:nth-of-type(6)::after { animation-delay: 1.8s; }
+      .plink:nth-of-type(8)::after { animation-delay: 0.3s; background: var(--pink); box-shadow: 0 0 10px var(--pink); }
+      @keyframes flow { 0% { left: -4px; opacity: 0; } 12% { opacity: 1; } 88% { opacity: 1; } 100% { left: calc(100% - 3px); opacity: 0; } }
 
       /* ---------- stats ---------- */
-      .stats {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 16px; padding: 0 6vw 0 116px; margin-top: -30px;
-      }
-      .stat {
-        background: var(--card); border: 1px solid var(--card-border); border-radius: 16px;
-        padding: 22px 24px; backdrop-filter: blur(8px);
-      }
-      .stat b { font-size: 30px; display: block; letter-spacing: -0.5px; font-family: var(--mono); }
-      .stat b em { font-style: normal; background: linear-gradient(92deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-      .stat span { color: var(--muted); font-size: 12.5px; letter-spacing: 0.6px; text-transform: uppercase; font-family: var(--mono); }
-
-      /* ---------- sections ---------- */
-      section { padding: 100px 6vw 100px 136px; max-width: 1280px; margin: 0 auto; }
-      .sec-title { font-size: clamp(28px, 4vw, 42px); font-weight: 800; letter-spacing: -0.5px; margin-bottom: 8px; }
-      .sec-title .grad { background: linear-gradient(92deg, var(--accent), var(--accent2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-      .sec-sub { color: var(--muted); margin-bottom: 42px; font-size: 16px; max-width: 640px; }
-      .reveal { opacity: 0; transform: translateY(34px); transition: opacity 0.7s ease, transform 0.7s ease; }
-      .reveal.visible { opacity: 1; transform: translateY(0); }
+      #stats { padding: 20px 0 96px; }
+      .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+      .stat { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px 20px; text-align: center; transition: 0.25s; }
+      .stat:hover { border-color: rgba(234, 75, 113, 0.5); transform: translateY(-3px); }
+      .stat b { font-size: 2.1rem; font-weight: 800; display: block; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
+      .stat span { color: var(--muted); font-size: 0.88rem; }
+      @media (max-width: 880px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
 
       /* ---------- about ---------- */
-      .about-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 40px; align-items: center; }
-      .about-text p { color: var(--muted); font-size: 16.5px; margin-bottom: 16px; }
-      .about-text p strong { color: var(--text); }
-      .about-text .term-line { font-family: var(--mono); font-size: 14px; color: var(--accent2); }
-      .avatar-card {
-        background: linear-gradient(160deg, rgba(77,139,255,0.12), rgba(169,123,255,0.08));
-        border: 1px solid var(--card-border); border-radius: 24px; padding: 36px;
-        text-align: center; position: relative; overflow: hidden;
-      }
-      .avatar-card::before {
-        content: ""; position: absolute; inset: -60%;
-        background: conic-gradient(from 0deg, transparent 0deg, rgba(77,139,255,.25) 90deg, transparent 180deg);
-        animation: spin 7s linear infinite;
-      }
-      @keyframes spin { to { transform: rotate(360deg); } }
-      .avatar-inner { position: relative; background: var(--bg-soft); border-radius: 18px; padding: 30px; }
-      .monogram {
-        width: 86px; height: 86px; margin: 0 auto 16px; border-radius: 22px;
-        background: linear-gradient(135deg, var(--accent), var(--accent3));
-        display: flex; align-items: center; justify-content: center;
-        font-size: 34px; font-weight: 800; color: #fff; letter-spacing: 1px;
-        box-shadow: 0 10px 34px var(--glow);
-      }
-      .avatar-inner h3 { font-size: 18px; margin-bottom: 4px; }
-      .avatar-inner p { color: var(--muted); font-size: 13.5px; }
-      .loc { margin-top: 14px; font-size: 13px; color: var(--accent2); font-weight: 600; }
-
-      /* ---------- experience ---------- */
-      .timeline { position: relative; padding-left: 34px; }
-      .timeline::before {
-        content: ""; position: absolute; left: 9px; top: 6px; bottom: 6px; width: 2px;
-        background: linear-gradient(180deg, var(--accent), var(--accent3), var(--accent2));
-        border-radius: 2px;
-      }
-      .tl-item { position: relative; margin-bottom: 26px; }
-      .tl-dot {
-        position: absolute; left: -34px; top: 22px; width: 18px; height: 18px; border-radius: 50%;
-        background: var(--bg); border: 3px solid var(--accent); box-shadow: 0 0 16px var(--glow);
-      }
-      .tl-dot.now { border-color: var(--accent2); box-shadow: 0 0 16px rgba(55,230,195,0.5); animation: pulse 1.6s ease infinite; }
-      .tl-card {
-        background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; padding: 26px 28px;
-        transition: transform 0.3s, border-color 0.3s;
-      }
-      .tl-card:hover { transform: translateY(-4px); border-color: rgba(77,139,255,0.4); }
-      .tl-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
-      .tl-head h3 { font-size: 19px; }
-      .tl-badge {
-        background: rgba(77,139,255,0.12); border: 1px solid rgba(77,139,255,0.45);
-        color: var(--accent); font-size: 12px; font-weight: 700; padding: 5px 12px; border-radius: 999px; letter-spacing: 0.5px;
-        font-family: var(--mono);
-      }
-      .tl-company { color: var(--accent); font-size: 13.5px; font-weight: 600; margin: -6px 0 12px 0; }
-      .tl-list { margin: 0 0 12px 0; padding-left: 20px; }
-      .tl-list li { color: var(--muted); font-size: 14.5px; margin-bottom: 7px; }
-      @keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(55,230,195,0.6); } 55% { box-shadow: 0 0 0 7px rgba(55,230,195,0); } }
+      .about-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 40px; align-items: start; }
+      .lead { color: var(--muted); font-size: 1.03rem; margin-bottom: 16px; }
+      .lead strong { color: var(--text); }
+      .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+      .chip { border: 1px solid var(--line); background: var(--card); padding: 8px 15px; border-radius: 999px; font-size: 13px; }
+      .note { background: linear-gradient(135deg, rgba(234, 75, 113, 0.13), rgba(142, 107, 255, 0.13)); border: 1px solid var(--line); border-radius: 18px; padding: 28px; position: sticky; top: 90px; }
+      .note .q { font-size: 1.08rem; font-weight: 600; line-height: 1.5; margin-bottom: 14px; letter-spacing: -0.01em; }
+      .note .by { color: var(--muted); font-size: 0.88rem; }
+      @media (max-width: 880px) { .about-grid { grid-template-columns: 1fr; } .note { position: static; } }
 
       /* ---------- projects ---------- */
-      .proj-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px; }
-      .proj {
-        position: relative; background: var(--card); border: 1px solid var(--card-border);
-        border-radius: 20px; padding: 28px; backdrop-filter: blur(8px);
-        transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
-        display: flex; flex-direction: column; gap: 14px;
-      }
-      .proj:hover { transform: translateY(-8px); border-color: rgba(77,139,255,0.45); box-shadow: 0 20px 50px rgba(0,0,0,0.45), 0 0 0 1px rgba(77,139,255,0.15); }
-      .proj .icon { font-size: 34px; }
-      .proj h3 { font-size: 20px; letter-spacing: -0.3px; }
-      .proj p { color: var(--muted); font-size: 14.5px; flex-grow: 1; }
-      .proj.featured { grid-column: span 2; }
-      .live-badge {
-        position: absolute; top: 22px; right: 22px; display: inline-flex; align-items: center; gap: 7px;
-        background: rgba(55, 230, 195, 0.12); border: 1px solid rgba(55, 230, 195, 0.5);
-        color: var(--accent2); font-size: 11.5px; font-weight: 800; letter-spacing: 1.2px;
-        padding: 6px 12px; border-radius: 999px; text-transform: uppercase;
-      }
-      .live-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent2); animation: pulse 1.6s ease infinite; }
-      .chips { display: flex; flex-wrap: wrap; gap: 7px; }
-      .chip {
-        background: rgba(255,255,255,0.06); border: 1px solid var(--card-border);
-        color: var(--muted); font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
-        font-family: var(--mono);
-        transition: color 0.25s, border-color 0.25s, transform 0.25s;
-      }
-      .proj:hover .chip { animation: chipFloat 2.2s ease infinite; }
-      .chip:nth-child(2n) { animation-delay: 0.15s; }
-      .chip:nth-child(3n) { animation-delay: 0.3s; }
-      @keyframes chipFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
-      .proj-links { display: flex; gap: 12px; margin-top: 4px; flex-wrap: wrap; }
-      .proj-links a {
-        color: var(--accent); font-size: 13.5px; font-weight: 700; text-decoration: none;
-        display: inline-flex; align-items: center; gap: 6px; transition: color 0.25s;
-      }
-      .proj-links a:hover { color: var(--accent2); }
-      .metric-row { display: flex; gap: 20px; flex-wrap: wrap; }
-      .metric b { font-size: 17px; color: var(--accent2); font-family: var(--mono); }
-      .metric span { display: block; color: var(--muted); font-size: 11.5px; letter-spacing: 0.5px; }
+      .pgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .proj { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 28px; display: flex; flex-direction: column; gap: 14px; transition: 0.25s; }
+      .proj:hover { transform: translateY(-5px); border-color: rgba(142, 107, 255, 0.55); box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45); }
+      .pic { font-size: 1.7rem; }
+      .proj h3 { font-size: 1.13rem; letter-spacing: -0.01em; line-height: 1.3; }
+      .proj > p { color: var(--muted); font-size: 0.92rem; }
+      .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 12px 0; }
+      .metric b { display: block; font-size: 0.98rem; color: var(--teal); }
+      .metric span { font-size: 0.72rem; color: var(--muted); }
+      .pchips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .pchip { font-size: 11px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; color: var(--muted); }
+      .plinks { display: flex; gap: 10px; flex-wrap: wrap; margin-top: auto; }
+      @media (max-width: 880px) { .pgrid { grid-template-columns: 1fr; } }
 
       /* ---------- skills ---------- */
-      .skill-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 22px; }
-      .skill-group {
-        background: var(--card); border: 1px solid var(--card-border); border-radius: 18px; padding: 26px;
-        transition: transform 0.3s, border-color 0.3s;
-      }
-      .skill-group:hover { transform: translateY(-5px); border-color: rgba(169,123,255,0.4); }
-      .skill-group h3 { font-size: 14px; text-transform: uppercase; letter-spacing: 1.6px; color: var(--accent3); margin-bottom: 16px; font-family: var(--mono); }
-      .skill-group .chips .chip { font-size: 13px; padding: 7px 14px; }
-      .skill-group .chip:hover { color: var(--text); border-color: var(--accent); transform: translateY(-2px); }
+      .sgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+      .scol { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 28px; }
+      .scol h3 { font-size: 1rem; margin-bottom: 18px; display: flex; align-items: center; gap: 9px; }
+      .scol h3::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--pink); }
+      .scol:nth-child(2) h3::before { background: var(--purple); }
+      .scol:nth-child(3) h3::before { background: var(--teal); }
+      @media (max-width: 880px) { .sgrid { grid-template-columns: 1fr; } }
 
-      /* ---------- education ---------- */
-      .edu-card {
-        background: var(--card); border: 1px solid var(--card-border); border-radius: 18px;
-        padding: 28px; display: flex; gap: 20px; align-items: center;
-      }
-      .edu-card + .edu-card { margin-top: 16px; }
-      .edu-card .badge {
-        min-width: 64px; height: 64px; border-radius: 16px;
-        background: linear-gradient(135deg, var(--accent), var(--accent2));
-        display: flex; align-items: center; justify-content: center; font-size: 28px;
-      }
-      .edu-card h3 { font-size: 18px; }
-      .edu-card p { color: var(--muted); font-size: 14px; }
+      /* ---------- certificates ---------- */
+      .cert { display: flex; align-items: center; gap: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; margin-bottom: 12px; transition: 0.2s; }
+      .cert:hover { border-color: rgba(47, 214, 165, 0.5); transform: translateX(4px); }
+      .cert .ic { font-size: 1.5rem; flex: none; }
+      .cert .cinfo { flex: 1; }
+      .cert .cinfo b { display: block; font-size: 0.97rem; }
+      .cert .cinfo span { color: var(--muted); font-size: 0.84rem; }
+      .cert .copen { color: var(--teal); font-weight: 600; font-size: 14px; white-space: nowrap; }
+      @media (max-width: 640px) { .cert { flex-wrap: wrap; } }
 
       /* ---------- contact ---------- */
-      .contact-wrap { text-align: center; }
-      .contact-wrap h2 { font-size: clamp(30px, 4.5vw, 46px); font-weight: 800; letter-spacing: -0.5px; margin-bottom: 14px; }
-      .contact-wrap p { color: var(--muted); margin-bottom: 30px; font-size: 16px; }
-      .contact-btns { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+      #contact { text-align: center; border-top: 1px solid var(--line); }
+      .contact-big { font-size: clamp(1.9rem, 4.6vw, 3.1rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 20px; }
+      .contact-sub { color: var(--muted); max-width: 580px; margin: 0 auto 38px; }
+      .contact-cta { display: flex; justify-content: center; gap: 14px; flex-wrap: wrap; }
 
-      /* ---------- training HUD ---------- */
-      #hud {
-        position: fixed; right: 22px; bottom: 22px; z-index: 45;
-        background: rgba(5,7,15,0.8); border: 1px solid var(--card-border); border-radius: 12px;
-        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-        padding: 10px 16px; font-family: var(--mono); font-size: 12px; color: var(--muted);
-        display: flex; align-items: center; gap: 10px; letter-spacing: 0.4px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-      }
-      #hud .hud-dot {
-        width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
-        animation: pulse 1.4s ease infinite;
-      }
-      #hud.done .hud-dot { background: var(--accent2); }
-      #hud.done { color: var(--accent2); border-color: rgba(55,230,195,0.5); }
+      footer { border-top: 1px solid var(--line); padding: 32px 24px; text-align: center; color: var(--muted); font-size: 0.85rem; }
 
-      /* ---------- cursor trail ---------- */
-      .trail-dot {
-        position: fixed; width: 7px; height: 7px; border-radius: 50%; z-index: 60;
-        background: radial-gradient(circle at 35% 35%, #fff, var(--accent));
-        pointer-events: none; animation: trailFade 0.9s ease forwards;
-      }
-      @keyframes trailFade { to { opacity: 0; transform: scale(0.2); } }
-
-      footer {
-        text-align: center; color: var(--muted); font-size: 13px; padding: 34px 6vw 44px;
-        border-top: 1px solid rgba(255,255,255,0.05);
-      }
-      footer a { color: var(--accent); text-decoration: none; }
-      footer .pipe-done { font-family: var(--mono); font-size: 12px; color: var(--accent2); margin-bottom: 8px; }
-
-      @media (max-width: 1050px) {
-        #spine { display: none; }
-        nav { padding-left: 5vw; }
-        .hero { padding-left: 6vw; }
-        section { padding-left: 6vw; }
-        .stats { padding-left: 6vw; }
-      }
-      @media (max-width: 900px) {
-        .hero-grid { grid-template-columns: 1fr; }
-        .about-grid { grid-template-columns: 1fr; }
-        .proj.featured { grid-column: span 1; }
-        .nav-links { display: none; }
-        #hud { display: none; }
-      }
+      /* ---------- reveal ---------- */
+      .reveal { opacity: 0; transform: translateY(26px); transition: opacity 0.7s ease, transform 0.7s ease; }
+      .reveal.in { opacity: 1; transform: none; }
       @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after { animation: none !important; transition: none !important; }
-        .reveal { opacity: 1; transform: none; }
-        .spine-fill { transform: scaleY(1); }
+        html { scroll-behavior: auto; }
+        .reveal { opacity: 1; transform: none; transition: none; }
+        .plink::after { animation: none; left: calc(50% - 3px); }
       }
     </style>
   </head>
   <body>
-    <canvas id="particles"></canvas>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-
-    <div id="spine" aria-hidden="true">
-      <div class="spine-line"><div class="spine-fill" id="spineFill"></div></div>
-      <div class="spine-packets"><i></i><i></i><i></i></div>
-      <div class="spine-nodes">
-        <a class="spine-node" href="#top"><span class="sn-dot"></span><span class="sn-stage">00</span><span class="sn-name">RAW</span></a>
-        <a class="spine-node" href="#about"><span class="sn-dot"></span><span class="sn-stage">01</span><span class="sn-name">INGEST</span></a>
-        <a class="spine-node" href="#experience"><span class="sn-dot"></span><span class="sn-stage">02</span><span class="sn-name">VALIDATE</span></a>
-        <a class="spine-node" href="#projects"><span class="sn-dot"></span><span class="sn-stage">03</span><span class="sn-name">TRAIN</span></a>
-        <a class="spine-node" href="#skills"><span class="sn-dot"></span><span class="sn-stage">04</span><span class="sn-name">EVALUATE</span></a>
-        <a class="spine-node" href="#education"><span class="sn-dot"></span><span class="sn-stage">05</span><span class="sn-name">ARCHITECT</span></a>
-        <a class="spine-node" href="#contact"><span class="sn-dot"></span><span class="sn-stage">06</span><span class="sn-name">DEPLOY</span></a>
-      </div>
-    </div>
-
-    <nav>
-      <a class="logo" href="#top">sree.charan<span>_</span></a>
-      <div class="nav-links">
-        <a href="#about">About</a>
-        <a href="#experience">Experience</a>
-        <a href="#projects">Projects</a>
-        <a href="#skills">Skills</a>
-        <a href="#education">Education</a>
-        <a href="#contact">Contact</a>
+    <!-- ============ NAV ============ -->
+    <nav id="nav">
+      <a class="brand" href="#hero">sree<b>·charan</b></a>
+      <a class="nlink" href="#about" data-i="navAbout">About</a>
+      <a class="nlink" href="#projects" data-i="navProjects">Projects</a>
+      <a class="nlink" href="#skills" data-i="navSkills">Skills</a>
+      <a class="nlink" href="#certs" data-i="navCerts">Certificates</a>
+      <a class="nlink" href="#contact" data-i="navContact">Contact</a>
+      <div class="langs" role="group" aria-label="Language">
+        <button class="lang-btn" data-lang="en" aria-label="English">EN</button>
+        <button class="lang-btn" data-lang="fr" aria-label="Français">FR</button>
       </div>
     </nav>
 
-    <main id="top">
-      <header class="hero">
-        <div class="hero-grid">
-          <div>
-            <div class="eyebrow">Hi, my name is</div>
-            <h1>Sree Charan Lagudu.<br /><span class="grad">I turn data into decisions.</span></h1>
-            <div class="type-row">&gt; <span id="typer"></span><span class="cursor-t"></span></div>
-            <p class="sub">
-              I build <strong>end-to-end machine learning systems</strong> — from Airflow ingestion pipelines
-              to live Streamlit demos — and I make every prediction <strong>explainable</strong>, because a
-              number without a reason helps nobody.
-            </p>
-            <div class="cta-row">
-              <a class="btn btn-primary" href="#projects">🚀 View my work</a>
-              <a class="btn btn-ghost" href="https://github.com/Sreecharan-lagudu" target="_blank" rel="noopener">🐙 GitHub</a>
-              <a class="btn btn-ghost" href="https://www.linkedin.com/in/sree-charan-lagudu97/" target="_blank" rel="noopener">💼 LinkedIn</a>
-            </div>
-          </div>
-          <div class="viz-card">
-            <div class="viz-head"><span>live_training_viz.py</span><span class="rec">● LIVE</span></div>
-            <canvas id="trainviz" width="460" height="300"></canvas>
-            <div id="trainstats">epoch 000 · loss 0.6931 · acc 0.500</div>
-          </div>
+    <!-- ============ HERO ============ -->
+    <header id="hero">
+      <canvas id="fx" aria-hidden="true"></canvas>
+      <div class="hero-inner">
+        <span class="hero-eyebrow" data-i="heroEyebrow">Data Science &amp; ML Engineering</span>
+        <h1 data-i="heroH1" data-ih="1">I turn raw data into <span class="grad">live ML systems</span>.</h1>
+        <p class="sub" data-i="heroSub"></p>
+        <div class="cta">
+          <a class="btn grad" href="#projects" data-i="ctaDemo">▶ Try my live demos</a>
+          <a class="btn ghost" href="https://github.com/Sreecharan-lagudu" target="_blank" rel="noopener" data-i="ctaGit">⌨ GitHub</a>
         </div>
-        <div class="scroll-hint"><div class="wheel"></div>scroll to run pipeline</div>
-      </header>
-
-      <div class="stats">
-        <div class="stat reveal"><b><em>2</em></b><span>Live ML demos deployed</span></div>
-        <div class="stat reveal"><b><em>10</em></b><span>GitHub repositories</span></div>
-        <div class="stat reveal"><b><em>91%</em></b><span>Peak model accuracy (water quality)</span></div>
-        <div class="stat reveal"><b><em>22</em></b><span>Sensor features engineered &amp; modeled</span></div>
+        <div class="trust" data-i="trust"></div>
       </div>
+    </header>
 
-      <section id="about">
-        <div class="stage-tag reveal">STAGE 01 — INGEST: where the signal comes from</div>
-        <h2 class="sec-title reveal">About <span class="grad">me</span></h2>
-        <p class="sec-sub reveal">Master's student in Data Science &amp; Analytics at EPITA, Paris — building real systems, not just notebooks.</p>
+    <!-- ============ PIPELINE ============ -->
+    <section id="pipe">
+      <div class="wrap">
+        <p class="pipe-title" data-i="pipeTitle"></p>
+        <div class="pipe-track">
+          <div class="pnode"><i></i><span data-i="pn1">Raw CSV</span></div>
+          <span class="plink"></span>
+          <div class="pnode"><i></i><span data-i="pn2">Airflow</span></div>
+          <span class="plink"></span>
+          <div class="pnode"><i></i><span data-i="pn3">Validation</span></div>
+          <span class="plink"></span>
+          <div class="pnode"><i></i><span data-i="pn4">RandomForest</span></div>
+          <span class="plink"></span>
+          <div class="pnode"><i></i><span data-i="pn5">FastAPI · Streamlit</span></div>
+          <span class="plink"></span>
+          <div class="pnode"><i></i><span data-i="pn6">Grafana</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ STATS ============ -->
+    <section id="stats">
+      <div class="wrap">
+        <div class="stats-grid">
+          <div class="stat"><b><i class="cnt" data-to="2">0</i></b><span data-i="st1"></span></div>
+          <div class="stat"><b><i class="cnt" data-to="6">0</i></b><span data-i="st2"></span></div>
+          <div class="stat"><b><i class="cnt" data-to="91">0</i>%</b><span data-i="st3"></span></div>
+          <div class="stat"><b><i class="cnt" data-to="22">0</i></b><span data-i="st4"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section id="about">
+      <div class="wrap reveal">
+        <div class="eyebrow" data-i="aboutEyebrow">01 · About</div>
+        <h2 class="sec" data-i="aboutTitle"></h2>
         <div class="about-grid">
-          <div class="about-text reveal">
-            <p>
-              Before my Master's, I spent <strong>2+ years as an Assistant System Analyst at C-EDGE
-              Technologies</strong> (a TCS–SBI banking-tech joint venture in Hyderabad) — where I learned
-              that stakeholders need decisions, not just dashboards. Now I'm a graduate student who
-              believes a model isn't finished when the metrics look good — it's finished when
-              <strong>someone can use it, question it, and trust it</strong>.
-            </p>
-            <p>
-              My projects span the full lifecycle: <strong>ingestion with Airflow, validation with Great
-              Expectations, storage in PostgreSQL, serving through FastAPI, dashboards in Streamlit, and
-              monitoring with Grafana</strong>. I care about explainability (SHAP), honest metrics (AUC over
-              accuracy on imbalanced data), and security (credentials never in code).
-            </p>
-            <p class="term-line">&gt; current_status: "open to data science &amp; ML internships" ✓</p>
-          </div>
-          <div class="avatar-card reveal">
-            <div class="avatar-inner">
-              <div class="monogram">SC</div>
-              <h3>Sree Charan Lagudu</h3>
-              <p>Data Science &amp; Analytics, MSc</p>
-              <div class="loc">📍 Paris, France</div>
-              <div class="loc">✦ Open to internships</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="experience">
-        <div class="stage-tag reveal">STAGE 02 — VALIDATE: two years of industry-grade work</div>
-        <h2 class="sec-title reveal">Exper<span class="grad">ience</span></h2>
-        <p class="sec-sub reveal">Two years in industry before my Master's — the foundation everything above is built on.</p>
-        <div class="timeline">
-          <div class="tl-item reveal">
-            <div class="tl-dot"></div>
-            <div class="tl-card">
-              <div class="tl-head">
-                <h3>Assistant System Analyst</h3>
-                <span class="tl-badge">2+ years</span>
-              </div>
-              <p class="tl-company">C-EDGE Technologies Ltd · TCS × SBI joint venture · Hyderabad, India</p>
-              <ul class="tl-list">
-                <li>Worked on core banking software systems at a TCS–SBI joint venture serving the State Bank group</li>
-                <li>Wrote SQL queries, validated data, and prepared reports for business teams</li>
-                <li>Supported production systems and coordinated between business and technical teams</li>
-              </ul>
-              <div class="chips">
-                <span class="chip">SQL</span><span class="chip">Excel</span><span class="chip">Reporting</span><span class="chip">Banking Systems</span><span class="chip">Production Support</span>
-              </div>
-            </div>
-          </div>
-          <div class="tl-item reveal">
-            <div class="tl-dot now"></div>
-            <div class="tl-card">
-              <div class="tl-head">
-                <h3>MSc Data Science &amp; Analytics</h3>
-                <span class="tl-badge">Now · EPITA, Paris</span>
-              </div>
-              <ul class="tl-list">
-                <li>Leveling up from analytics to full ML engineering: pipelines, models, deployments</li>
-                <li>Shipped two live ML demos and an end-to-end MLOps pipeline — see Projects below</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="projects">
-        <div class="stage-tag reveal">STAGE 03 — TRAIN: models, shipped and running</div>
-        <h2 class="sec-title reveal">Featured <span class="grad">projects</span></h2>
-        <p class="sec-sub reveal">Two are live — click a demo and try them yourself.</p>
-        <div class="proj-grid">
-          <article class="proj featured reveal">
-            <div class="live-badge"><span class="dot"></span>Live demo</div>
-            <div class="icon">💧</div>
-            <h3>Water Quality Prediction — MLOps Pipeline</h3>
-            <p>
-              A production-style pipeline: <strong>Airflow</strong> ingests raw CSV chunks on a schedule,
-              <strong>Great Expectations</strong> validates every record, and PostgreSQL routes clean vs.
-              suspect data into <strong>good_data_table / bad_data_table</strong>. A RandomForest model
-              (22 sensor features) is served via <strong>FastAPI</strong> and visualized in
-              <strong>Streamlit</strong>, with <strong>Grafana</strong> dashboards for monitoring.
-            </p>
-            <div class="metric-row">
-              <div class="metric"><b>91%</b><span>original model accuracy</span></div>
-              <div class="metric"><b>87.3%</b><span>live demo model (measured, published)</span></div>
-              <div class="metric"><b>7 stages</b><span>ingestion → monitoring</span></div>
-            </div>
-            <div class="chips">
-              <span class="chip">Python</span><span class="chip">Apache Airflow</span><span class="chip">PostgreSQL</span>
-              <span class="chip">FastAPI</span><span class="chip">Streamlit</span><span class="chip">Great Expectations</span>
-              <span class="chip">Grafana</span><span class="chip">scikit-learn</span>
-            </div>
-            <div class="proj-links">
-              <a href="https://water-quality-prediction-project.streamlit.app/" target="_blank" rel="noopener">▶ Try the live demo</a>
-              <a href="https://github.com/Sreecharan-lagudu/Water-Quality-Prediction---ML-Pipeline-Project" target="_blank" rel="noopener">⌨ View code</a>
-            </div>
-          </article>
-
-          <article class="proj featured reveal">
-            <div class="live-badge"><span class="dot"></span>Live demo</div>
-            <div class="icon">📉</div>
-            <h3>Customer Churn Predictor — Explainable AI</h3>
-            <p>
-              An end-to-end churn system on the IBM Telco dataset. Three models compared by
-              <strong>cross-validated AUC</strong> (class imbalance rules out accuracy), and every
-              prediction ships with a <strong>SHAP breakdown</strong> — so a retention team sees not just
-              <em>who</em> is at risk, but <em>what</em> drives the risk and what to do about it.
-            </p>
-            <div class="metric-row">
-              <div class="metric"><b>AUC 0.845</b><span>model selection (cross-validated)</span></div>
-              <div class="metric"><b>73/27</b><span>class imbalance handled</span></div>
-              <div class="metric"><b>SHAP</b><span>per-customer explanations</span></div>
-            </div>
-            <div class="chips">
-              <span class="chip">Python</span><span class="chip">LogReg / XGBoost</span><span class="chip">SHAP</span>
-              <span class="chip">scikit-learn</span><span class="chip">Streamlit</span><span class="chip">pandas</span>
-            </div>
-            <div class="proj-links">
-              <a href="https://churn-predictor-eljxvhhaup5s99vgref6oj.streamlit.app/" target="_blank" rel="noopener">▶ Try the live demo</a>
-              <a href="https://github.com/Sreecharan-lagudu/churn-predictor" target="_blank" rel="noopener">⌨ View code</a>
-            </div>
-          </article>
-
-          <article class="proj reveal">
-            <div class="icon">⚡</div>
-            <h3>EV Stocks — Global BI Analysis</h3>
-            <p>
-              Global electric-vehicle market analysis: KPIs, stock trends and interactive dashboards for
-              investment storytelling with data.
-            </p>
-            <div class="chips">
-              <span class="chip">SQL</span><span class="chip">Power BI</span><span class="chip">Data Viz</span><span class="chip">Excel</span>
-            </div>
-            <div class="proj-links">
-              <a href="https://github.com/Sreecharan-lagudu/BI-Project-Electric-Car-Stocks-Analysis" target="_blank" rel="noopener">⌨ View code</a>
-            </div>
-          </article>
-
-          <article class="proj reveal">
-            <div class="icon">🎯</div>
-            <h3>YOLOv10 — Real-Time Object Detection</h3>
-            <p>
-              Computer vision with the YOLOv10 architecture: training and inference pipelines for
-              detecting objects in images and video streams.
-            </p>
-            <div class="chips">
-              <span class="chip">Python</span><span class="chip">OpenCV</span><span class="chip">YOLOv10</span><span class="chip">PyTorch</span>
-            </div>
-            <div class="proj-links">
-              <a href="https://github.com/Sreecharan-lagudu/YOLOV10" target="_blank" rel="noopener">⌨ View code</a>
-            </div>
-          </article>
-
-          <article class="proj reveal">
-            <div class="icon">🧠</div>
-            <h3>NLP — Emotions Classification</h3>
-            <p>
-              Text classification of emotional tone: preprocessing pipelines, feature extraction and
-              model evaluation on an emotions dataset.
-            </p>
-            <div class="chips">
-              <span class="chip">Python</span><span class="chip">NLP</span><span class="chip">scikit-learn</span><span class="chip">pandas</span>
-            </div>
-            <div class="proj-links">
-              <a href="https://github.com/Sreecharan-lagudu/NLP_Emotions_Dataset_Exam" target="_blank" rel="noopener">⌨ View code</a>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section id="skills">
-        <div class="stage-tag reveal">STAGE 04 — EVALUATE: tools scored on real projects</div>
-        <h2 class="sec-title reveal">Skills &amp; <span class="grad">toolbox</span></h2>
-        <p class="sec-sub reveal">Everything listed here is used in a real project above — nothing decorative.</p>
-        <div class="skill-groups">
-          <div class="skill-group reveal">
-            <h3>Machine Learning</h3>
-            <div class="chips">
-              <span class="chip">Python</span><span class="chip">pandas</span><span class="chip">NumPy</span>
-              <span class="chip">scikit-learn</span><span class="chip">XGBoost</span><span class="chip">SHAP</span>
-              <span class="chip">Matplotlib</span><span class="chip">EDA</span>
-            </div>
-          </div>
-          <div class="skill-group reveal">
-            <h3>MLOps &amp; Engineering</h3>
-            <div class="chips">
-              <span class="chip">Apache Airflow</span><span class="chip">FastAPI</span><span class="chip">Streamlit</span>
-              <span class="chip">PostgreSQL</span><span class="chip">Great Expectations</span>
-              <span class="chip">Grafana</span><span class="chip">Git / GitHub</span>
-            </div>
-          </div>
-          <div class="skill-group reveal">
-            <h3>Data &amp; BI</h3>
-            <div class="chips">
-              <span class="chip">SQL</span><span class="chip">Power BI</span><span class="chip">Excel</span>
-              <span class="chip">Data Visualization</span><span class="chip">Feature Engineering</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="education">
-        <div class="stage-tag reveal">STAGE 05 — ARCHITECT: the system behind the model</div>
-        <h2 class="sec-title reveal">Edu<span class="grad">cation</span></h2>
-        <p class="sec-sub reveal">Electrical engineer → banking-tech system analyst → data scientist. A deliberate journey, not a detour.</p>
-        <div class="edu-card reveal">
-          <div class="badge">🎓</div>
           <div>
-            <h3>MSc Data Science &amp; Analytics — EPITA</h3>
-            <p>Paris, France · focused on machine learning engineering, MLOps and business analytics</p>
+            <p class="lead" data-i="aboutP1"></p>
+            <p class="lead" data-i="aboutP2"></p>
+            <div class="chips">
+              <span class="chip" data-i="chip1"></span>
+              <span class="chip" data-i="chip2"></span>
+              <span class="chip" data-i="chip3"></span>
+            </div>
+          </div>
+          <div class="note">
+            <p class="q" data-i="quote"></p>
+            <p class="by" data-i="quoteBy"></p>
           </div>
         </div>
-        <div class="edu-card reveal">
-          <div class="badge">⚡</div>
-          <div>
-            <h3>B.Tech — Electrical &amp; Electronics Engineering · 2015–2019</h3>
-            <p>Godavari Institute of Engineering and Technology · Rajahmundry, Andhra Pradesh, India</p>
+      </div>
+    </section>
+
+    <!-- ============ PROJECTS ============ -->
+    <section id="projects">
+      <div class="wrap reveal">
+        <div class="eyebrow" data-i="projectsEyebrow">02 · Projects</div>
+        <h2 class="sec" data-i="projectsTitle"></h2>
+        <div class="pgrid">
+          <div class="proj">
+            <div class="pic">💧</div>
+            <h3 data-i="p1T"></h3>
+            <p data-i="p1D"></p>
+            <div class="metrics">
+              <div class="metric"><b data-i="p1M1"></b><span data-i="p1M1s"></span></div>
+              <div class="metric"><b data-i="p1M2"></b><span data-i="p1M2s"></span></div>
+              <div class="metric"><b data-i="p1M3"></b><span data-i="p1M3s"></span></div>
+            </div>
+            <div class="pchips">
+              <span class="pchip">Python</span><span class="pchip">Airflow</span><span class="pchip">PostgreSQL</span><span class="pchip">FastAPI</span><span class="pchip">Streamlit</span><span class="pchip">Grafana</span>
+            </div>
+            <div class="plinks">
+              <a class="btn grad sm" href="https://water-quality-prediction-project.streamlit.app/" target="_blank" rel="noopener" data-i="demo"></a>
+              <a class="btn ghost sm" href="https://github.com/Sreecharan-lagudu/Water-Quality-Prediction---ML-Pipeline-Project" target="_blank" rel="noopener" data-i="code"></a>
+            </div>
+          </div>
+          <div class="proj">
+            <div class="pic">📉</div>
+            <h3 data-i="p2T"></h3>
+            <p data-i="p2D"></p>
+            <div class="metrics">
+              <div class="metric"><b data-i="p2M1"></b><span data-i="p2M1s"></span></div>
+              <div class="metric"><b data-i="p2M2"></b><span data-i="p2M2s"></span></div>
+              <div class="metric"><b data-i="p2M3"></b><span data-i="p2M3s"></span></div>
+            </div>
+            <div class="pchips">
+              <span class="pchip">Python</span><span class="pchip">XGBoost</span><span class="pchip">SHAP</span><span class="pchip">scikit-learn</span><span class="pchip">Streamlit</span>
+            </div>
+            <div class="plinks">
+              <a class="btn grad sm" href="https://churn-predictor-eljxvhhaup5s99vgref6oj.streamlit.app/" target="_blank" rel="noopener" data-i="demo"></a>
+              <a class="btn ghost sm" href="https://github.com/Sreecharan-lagudu/churn-predictor" target="_blank" rel="noopener" data-i="code"></a>
+            </div>
+          </div>
+          <div class="proj">
+            <div class="pic">⚡</div>
+            <h3 data-i="p3T"></h3>
+            <p data-i="p3D"></p>
+            <div class="metrics">
+              <div class="metric"><b data-i="p3M1"></b><span data-i="p3M1s"></span></div>
+              <div class="metric"><b data-i="p3M2"></b><span data-i="p3M2s"></span></div>
+              <div class="metric"><b data-i="p3M3"></b><span data-i="p3M3s"></span></div>
+            </div>
+            <div class="pchips">
+              <span class="pchip">SQL</span><span class="pchip">Power BI</span><span class="pchip">Excel</span>
+            </div>
+            <div class="plinks">
+              <a class="btn ghost sm" href="https://github.com/Sreecharan-lagudu/BI-Project-Electric-Car-Stocks-Analysis" target="_blank" rel="noopener" data-i="code"></a>
+            </div>
+          </div>
+          <div class="proj">
+            <div class="pic">🗣️</div>
+            <h3 data-i="p4T"></h3>
+            <p data-i="p4D"></p>
+            <div class="pchips">
+              <span class="pchip">Python</span><span class="pchip">BERT</span><span class="pchip">Bi-LSTM</span><span class="pchip">NLP</span><span class="pchip">Deep Learning</span>
+            </div>
+            <div class="plinks">
+              <a class="btn ghost sm" href="https://github.com/Sreecharan-lagudu/NLP_Emotions_Dataset_Exam" target="_blank" rel="noopener" data-i="code"></a>
+            </div>
+          </div>
+          <div class="proj">
+            <div class="pic">🍎</div>
+            <h3 data-i="p5T"></h3>
+            <p data-i="p5D"></p>
+            <div class="pchips">
+              <span class="pchip">Python</span><span class="pchip">YOLOv10</span><span class="pchip">Faster R-CNN</span><span class="pchip">Object Detection</span><span class="pchip">Computer Vision</span>
+            </div>
+            <div class="plinks">
+              <a class="btn ghost sm" href="https://github.com/Sreecharan-lagudu/YOLOV10" target="_blank" rel="noopener" data-i="code"></a>
+            </div>
+          </div>
+          <div class="proj">
+            <div class="pic">📊</div>
+            <h3 data-i="p6T"></h3>
+            <p data-i="p6D"></p>
+            <div class="pchips">
+              <span class="pchip">Tableau</span><span class="pchip">Snowflake Schema</span><span class="pchip">Business Intelligence</span><span class="pchip">Data Visualization</span>
+            </div>
+            <div class="plinks">
+              <a class="btn ghost sm" href="https://github.com/Sreecharan-lagudu/EV-Stocks-Global-Analysis" target="_blank" rel="noopener" data-i="code"></a>
+            </div>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section id="contact">
-        <div class="stage-tag reveal">STAGE 06 — DEPLOY: go live with me</div>
-        <div class="contact-wrap reveal">
-          <h2>Let's build something <span style="background:linear-gradient(92deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;">data-driven</span>.</h2>
-          <p>
-            I'm open to data science &amp; ML internships in France and across Europe.<br />
-            The fastest way to see how I work is to try one of my live demos.
-          </p>
-          <div class="contact-btns">
-            <a class="btn btn-primary" href="https://www.linkedin.com/in/sree-charan-lagudu97/" target="_blank" rel="noopener">💼 Connect on LinkedIn</a>
-            <a class="btn btn-ghost" href="https://github.com/Sreecharan-lagudu" target="_blank" rel="noopener">🐙 Follow on GitHub</a>
-            <a class="btn btn-ghost" href="mailto:sree-charan.lagudu@epita.fr">✉ sree-charan.lagudu@epita.fr</a>
+    <!-- ============ SKILLS ============ -->
+    <section id="skills">
+      <div class="wrap reveal">
+        <div class="eyebrow" data-i="skillsEyebrow">03 · Skills</div>
+        <h2 class="sec" data-i="skillsTitle"></h2>
+        <div class="sgrid">
+          <div class="scol">
+            <h3 data-i="sk1T"></h3>
+            <div class="chips">
+              <span class="chip">Python</span><span class="chip">pandas</span><span class="chip">NumPy</span><span class="chip">scikit-learn</span><span class="chip">XGBoost</span><span class="chip">SHAP</span><span class="chip">Matplotlib</span><span class="chip">EDA</span>
+            </div>
+          </div>
+          <div class="scol">
+            <h3 data-i="sk2T"></h3>
+            <div class="chips">
+              <span class="chip">Apache Airflow</span><span class="chip">FastAPI</span><span class="chip">Streamlit</span><span class="chip">PostgreSQL</span><span class="chip">Great Expectations</span><span class="chip">Grafana</span><span class="chip">Git / GitHub</span>
+            </div>
+          </div>
+          <div class="scol">
+            <h3 data-i="sk3T"></h3>
+            <div class="chips">
+              <span class="chip">SQL</span><span class="chip">Power BI</span><span class="chip">Excel</span><span class="chip" data-i="chipViz"></span><span class="chip" data-i="chipFeat"></span>
+            </div>
           </div>
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
 
-    <div id="hud" aria-hidden="true"><span class="hud-dot"></span><span id="hud-text">epoch 001 · loss 0.693 · acc 0.500</span></div>
+    <!-- ============ CERTIFICATES ============ -->
+    <section id="certs">
+      <div class="wrap reveal">
+        <div class="eyebrow" data-i="certsEyebrow">04 · Certificates</div>
+        <h2 class="sec" data-i="certsTitle"></h2>
+        <a class="cert" href="https://sreecharan-lagudu.github.io/certs/deloitte-data-analytics.pdf" target="_blank" rel="noopener">
+          <span class="ic">🏅</span>
+          <span class="cinfo"><b data-i="c1N"></b><span data-i="c1D"></span></span>
+          <span class="copen" data-i="open"></span>
+        </a>
+        <a class="cert" href="https://sreecharan-lagudu.github.io/certs/genai-data-analytics.pdf" target="_blank" rel="noopener">
+          <span class="ic">🤖</span>
+          <span class="cinfo"><b data-i="c2N"></b><span data-i="c2D"></span></span>
+          <span class="copen" data-i="open"></span>
+        </a>
+        <a class="cert" href="https://verify.skilljar.com/c/fgvbmdy249ep" target="_blank" rel="noopener">
+          <span class="ic">🧠</span>
+          <span class="cinfo"><b data-i="c3N"></b><span data-i="c3D"></span></span>
+          <span class="copen" data-i="open"></span>
+        </a>
+        <a class="cert" href="https://verify.skilljar.com/c/8uvus8udkci5" target="_blank" rel="noopener">
+          <span class="ic">🎨</span>
+          <span class="cinfo"><b data-i="c4N"></b><span data-i="c4D"></span></span>
+          <span class="copen" data-i="open"></span>
+        </a>
+        <a class="cert" href="https://sreecharan-lagudu.github.io/certs/tcf.pdf" target="_blank" rel="noopener">
+          <span class="ic">🇫🇷</span>
+          <span class="cinfo"><b data-i="c5N"></b><span data-i="c5D"></span></span>
+          <span class="copen" data-i="open"></span>
+        </a>
+      </div>
+    </section>
 
-    <footer>
-      <div class="pipe-done">&gt; pipeline complete — 6 stages · 0 errors · deploy: success ✓</div>
-      © 2026 Sree Charan Lagudu · Hand-coded HTML, CSS &amp; JS — no frameworks, no templates ·
-      <a href="https://github.com/Sreecharan-lagudu" target="_blank" rel="noopener">GitHub</a>
-    </footer>
+    <!-- ============ CONTACT ============ -->
+    <section id="contact">
+      <div class="wrap reveal">
+        <div class="eyebrow" data-i="contactEyebrow">05 · Contact</div>
+        <h2 class="sec contact-big" data-i="contactBig" data-ih="1"></h2>
+        <p class="contact-sub" data-i="contactSub"></p>
+        <div class="contact-cta">
+          <a class="btn grad" href="mailto:sree-charan.lagudu@epita.fr" data-i="mail"></a>
+          <a class="btn ghost" href="https://www.linkedin.com/in/sree-charan-lagudu97/" target="_blank" rel="noopener" data-i="li"></a>
+          <a class="btn ghost" href="https://github.com/Sreecharan-lagudu" target="_blank" rel="noopener" data-i="gh"></a>
+        </div>
+      </div>
+    </section>
+
+    <footer data-i="foot"></footer>
 
     <script>
-      /* ---------- typewriter ---------- */
-      var roles = ["Data Scientist", "ML Engineer", "MSc Data Science @ EPITA, Paris", "MLOps enthusiast"];
-      var typer = document.getElementById("typer");
-      var ri = 0, ci = 0, deleting = false;
-      function tick() {
-        var word = roles[ri];
-        if (!deleting) {
-          ci++;
-          typer.textContent = word.slice(0, ci);
-          if (ci === word.length) { deleting = true; setTimeout(tick, 1800); return; }
-          setTimeout(tick, 55);
-        } else {
-          ci--;
-          typer.textContent = word.slice(0, ci);
-          if (ci === 0) { deleting = false; ri = (ri + 1) % roles.length; setTimeout(tick, 350); return; }
-          setTimeout(tick, 26);
-        }
-      }
-      tick();
-
-      /* ---------- scroll reveal ---------- */
-      var io = new IntersectionObserver(function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) { e.target.classList.add("visible"); io.unobserve(e.target); }
-        });
-      }, { threshold: 0.12 });
-      document.querySelectorAll(".reveal").forEach(function (el, i) {
-        el.style.transitionDelay = (i % 4) * 60 + "ms";
-        io.observe(el);
-      });
-
-      /* ---------- background particles (light) ---------- */
-      var canvas = document.getElementById("particles");
-      var ctx = canvas.getContext("2d");
       var reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      var W, H, pts = [];
-      function resize() {
-        W = canvas.width = window.innerWidth;
-        H = canvas.height = window.innerHeight;
-        var n = Math.min(60, Math.floor((W * H) / 30000));
-        pts = [];
-        for (var i = 0; i < n; i++) {
-          pts.push({ x: Math.random() * W, y: Math.random() * H, vx: (Math.random() - 0.5) * 0.35, vy: (Math.random() - 0.5) * 0.35 });
+
+      /* ============ LANGUAGE ============ */
+      var L = "en";
+      try {
+        var storedLang = localStorage.getItem("sree-lang");
+        if (storedLang === "en" || storedLang === "fr") L = storedLang;
+        else if ((navigator.language || "").toLowerCase().indexOf("fr") === 0) L = "fr";
+      } catch (e) {}
+
+      var STR = {
+        en: {
+          navAbout: "About", navProjects: "Projects", navSkills: "Skills", navCerts: "Certificates", navContact: "Contact",
+          heroEyebrow: "Data Science & ML Engineering",
+          heroH1: 'I turn raw data into <span class="grad">live ML systems</span>.',
+          heroSub: "Data Scientist & ML Engineer — MSc Data Science & Analytics at EPITA, Paris. 2+ years building banking systems at a TCS–SBI joint venture. From Rajahmundry to Hyderabad to Paris.",
+          ctaDemo: "▶ Try my live demos", ctaGit: "⌨ GitHub",
+          trust: "🇪🇺 Open to data science & ML internships in France and across Europe",
+          pipeTitle: "How I work — one honest pipeline, from raw data to monitoring",
+          pn1: "Raw CSV", pn2: "Airflow", pn3: "Validation", pn4: "RandomForest", pn5: "FastAPI · Streamlit", pn6: "Grafana",
+          st1: "Live ML demos", st2: "GitHub projects", st3: "Peak model accuracy", st4: "Sensor features",
+          aboutEyebrow: "01 · About", aboutTitle: "About me",
+          aboutP1: "Hi! I'm Sree Charan Lagudu — MSc Data Science & Analytics student at EPITA, Paris, building real systems, not just notebooks. Before my Master's, I spent 2+ years as an Assistant System Analyst at C-EDGE Technologies (a TCS–SBI banking-tech joint venture in Hyderabad) — where I learned that stakeholders need decisions, not just dashboards.",
+          aboutP2: "I care about explainability (SHAP), honest metrics (AUC over accuracy on imbalanced data), and security (credentials never in code). Every project on this page was built end-to-end and shipped live.",
+          chip1: "Explainability — SHAP", chip2: "Honest metrics — AUC", chip3: "Credentials never in code",
+          quote: "“A model isn't finished when the metrics look good — it's finished when someone can use it, question it, and trust it.”",
+          quoteBy: "— my rule for every project",
+          projectsEyebrow: "02 · Projects", projectsTitle: "Live projects — try them, they're real",
+          p1T: "Water Quality Prediction — MLOps Pipeline",
+          p1D: "A production-style pipeline: Airflow ingests raw CSV chunks on a schedule, Great Expectations validates every record, and PostgreSQL routes clean vs. suspect data. A RandomForest model (22 sensor features) is served via FastAPI and visualized in Streamlit, with Grafana for monitoring.",
+          p1M1: "91%", p1M1s: "original accuracy", p1M2: "87.3%", p1M2s: "live demo (measured)", p1M3: "7", p1M3s: "pipeline stages",
+          p2T: "Customer Churn Predictor — Explainable AI",
+          p2D: "An end-to-end churn system on the IBM Telco dataset. Three models compared by cross-validated AUC (class imbalance rules out accuracy), and every prediction ships with a SHAP breakdown — so a retention team sees not just who is at risk, but what drives the risk.",
+          p2M1: "AUC 0.845", p2M1s: "cross-validated", p2M2: "73/27", p2M2s: "imbalance handled", p2M3: "SHAP", p2M3s: "per-customer explanations",
+          p3T: "Electric Car Stocks — Power BI Analysis",
+          p3D: "Electric-vehicle market analysis in Power BI: KPIs, stock trends and interactive dashboards for investment storytelling with data.",
+          p3M1: "Global", p3M1s: "market scope", p3M2: "Power BI", p3M2s: "dashboards", p3M3: "KPIs", p3M3s: "investment view",
+          p4T: "Emotion Classification — NLP Deep Learning",
+          p4D: "Six-class emotion classification comparing a fully-connected network, Bi-LSTM and a fine-tuned BERT on the same dataset — an honest side-by-side evaluation of three architectures.",
+          p5T: "Fruit Counting & Yield Estimation — Computer Vision",
+          p5D: "Object detection with YOLOv9/v10 and Faster R-CNN to count fruit and estimate yield and revenue — comparing detector speed against accuracy for agriculture.",
+          p6T: "EV Stocks Global Analysis — Tableau BI",
+          p6D: "Global electric-vehicle stock (2010–2024) modeled as a snowflake schema and explored through interactive Tableau dashboards — trends, KPIs and country comparisons.",
+          demo: "▶ Try live demo", code: "⌨ View code",
+          skillsEyebrow: "03 · Skills", skillsTitle: "Skills & toolbox — everything used in a real project",
+          sk1T: "Machine Learning", sk2T: "MLOps & Engineering", sk3T: "Data & BI",
+          chipViz: "Data Visualization", chipFeat: "Feature Engineering",
+          certsEyebrow: "04 · Certificates", certsTitle: "Certificates — continuous learning", open: "Open ↗",
+          c1N: "Deloitte — Data Analytics Job Simulation", c1D: "Forage · Aug 2025",
+          c2N: "GenAI-Powered Data Analytics Job Simulation", c2D: "Forage · Aug 2025",
+          c3N: "ML Practitioner Certificate", c3D: "Dataiku · Jun 2025",
+          c4N: "Core Designer Certificate", c4D: "Dataiku · Jun 2025",
+          c5N: "TCF — Test de connaissance du français", c5D: "France Éducation international · Dec 2025 · Level A2, valid until 2027",
+          contactEyebrow: "05 · Contact", contactBig: 'Let’s build something <span class="grad">data-driven</span>.',
+          contactSub: "I'm open to data science & ML internships in France and across Europe. The fastest way to see how I work is to try one of my live demos.",
+          mail: "✉ Email me", li: "💼 LinkedIn", gh: "🐙 GitHub",
+          foot: "Built with vanilla HTML, CSS & JavaScript — no templates · © 2026 Sree Charan Lagudu"
+        },
+        fr: {
+          navAbout: "À propos", navProjects: "Projets", navSkills: "Compétences", navCerts: "Certificats", navContact: "Contact",
+          heroEyebrow: "Data Science & Ingénierie ML",
+          heroH1: 'Je transforme les données brutes en <span class="grad">systèmes ML en ligne</span>.',
+          heroSub: "Data Scientist & Ingénieur ML — Master Data Science & Analytics à l'EPITA, Paris. Plus de 2 ans à construire des systèmes bancaires dans une co-entreprise TCS–SBI. De Rajahmundry à Hyderabad jusqu'à Paris.",
+          ctaDemo: "▶ Essayer mes démos", ctaGit: "⌨ GitHub",
+          trust: "🇪🇺 Ouvert aux stages de data science & ML en France et en Europe",
+          pipeTitle: "Ma façon de travailler — un pipeline honnête, des données brutes au monitoring",
+          pn1: "CSV bruts", pn2: "Airflow", pn3: "Validation", pn4: "RandomForest", pn5: "FastAPI · Streamlit", pn6: "Grafana",
+          st1: "Démos ML en ligne", st2: "Projets GitHub", st3: "Précision max du modèle", st4: "Capteurs modélisés",
+          aboutEyebrow: "01 · À propos", aboutTitle: "À propos",
+          aboutP1: "Salut ! Je m'appelle Sree Charan Lagudu — étudiant en Master Data Science & Analytics à l'EPITA, Paris. Je construis de vrais systèmes, pas seulement des notebooks. Avant mon Master, j'ai passé plus de 2 ans comme Assistant System Analyst chez C-EDGE Technologies (une co-entreprise de tech bancaire TCS–SBI, à Hyderabad) — où j'ai appris que les parties prenantes ont besoin de décisions, pas seulement de tableaux de bord.",
+          aboutP2: "Je tiens à l'explicabilité (SHAP), aux métriques honnêtes (l'AUC plutôt que l'exactitude sur des données déséquilibrées) et à la sécurité (jamais d'identifiants dans le code). Chaque projet de cette page a été construit de bout en bout et livré en ligne.",
+          chip1: "Explicabilité — SHAP", chip2: "Métriques honnêtes — AUC", chip3: "Jamais d'identifiants dans le code",
+          quote: "« Un modèle n'est pas terminé quand les métriques sont bonnes — il est terminé quand quelqu'un peut l'utiliser, le questionner et lui faire confiance. »",
+          quoteBy: "— ma règle pour chaque projet",
+          projectsEyebrow: "02 · Projets", projectsTitle: "Projets en ligne — essayez, ils sont réels",
+          p1T: "Prédiction de la qualité de l'eau — Pipeline MLOps",
+          p1D: "Un pipeline de style production : Airflow ingère des fichiers CSV bruts selon un calendrier, Great Expectations valide chaque enregistrement, et PostgreSQL route les données propres vs suspectes. Un modèle RandomForest (22 caractéristiques de capteurs) est servi via FastAPI et visualisé dans Streamlit, avec Grafana pour le monitoring.",
+          p1M1: "91%", p1M1s: "précision d'origine", p1M2: "87,3%", p1M2s: "démo (mesuré)", p1M3: "7", p1M3s: "étapes",
+          p2T: "Prédiction du churn — IA explicable",
+          p2D: "Un système de churn de bout en bout sur le jeu de données IBM Telco. Trois modèles comparés par AUC en validation croisée (le déséquilibre de classes exclut l'exactitude), et chaque prédiction est livrée avec une décomposition SHAP — une équipe de rétention voit non seulement qui est à risque, mais ce qui alimente ce risque.",
+          p2M1: "AUC 0,845", p2M1s: "validation croisée", p2M2: "73/27", p2M2s: "déséquilibre géré", p2M3: "SHAP", p2M3s: "explications par client",
+          p3T: "Actions des voitures électriques — Power BI",
+          p3D: "Analyse du marché des véhicules électriques dans Power BI : KPI, tendances boursières et tableaux de bord interactifs pour raconter l'investissement avec les données.",
+          p3M1: "Mondial", p3M1s: "périmètre marché", p3M2: "Power BI", p3M2s: "tableaux de bord", p3M3: "KPI", p3M3s: "vue investissement",
+          p4T: "Classification des émotions — NLP & Deep Learning",
+          p4D: "Classification des émotions en six classes comparant un réseau dense, un Bi-LSTM et un BERT affiné sur le même jeu de données — une comparaison honnête de trois architectures.",
+          p5T: "Comptage de fruits & estimation de rendement — Vision par ordinateur",
+          p5D: "Détection d'objets avec YOLOv9/v10 et Faster R-CNN pour compter les fruits et estimer le rendement et le revenu — comparaison de la vitesse et de la précision des détecteurs.",
+          p6T: "Analyse mondiale des VE — Tableau BI",
+          p6D: "Parc mondial de véhicules électriques (2010–2024) modélisé en schéma flocon et exploré via des tableaux de bord Tableau interactifs — tendances, KPI et comparaisons par pays.",
+          demo: "▶ Essayer la démo", code: "⌨ Voir le code",
+          skillsEyebrow: "03 · Compétences", skillsTitle: "Compétences & outils — tout est utilisé dans un vrai projet",
+          sk1T: "Machine Learning", sk2T: "MLOps & Ingénierie", sk3T: "Données & BI",
+          chipViz: "Visualisation de données", chipFeat: "Ingénierie des caractéristiques",
+          certsEyebrow: "04 · Certificats", certsTitle: "Certificats — formation continue", open: "Ouvrir ↗",
+          c1N: "Deloitte — Data Analytics Job Simulation", c1D: "Forage · août 2025",
+          c2N: "GenAI-Powered Data Analytics Job Simulation", c2D: "Forage · août 2025",
+          c3N: "ML Practitioner Certificate", c3D: "Dataiku · juin 2025",
+          c4N: "Core Designer Certificate", c4D: "Dataiku · juin 2025",
+          c5N: "TCF — Test de connaissance du français", c5D: "France Éducation international · déc. 2025 · Niveau A2, valable jusqu'en 2027",
+          contactEyebrow: "05 · Contact", contactBig: 'Construisons quelque chose de <span class="grad">guidé par la donnée</span>.',
+          contactSub: "Je suis ouvert aux stages de data science & ML en France et en Europe. Le plus rapide pour voir comment je travaille : essayez une de mes démos en ligne.",
+          mail: "✉ M'écrire", li: "💼 LinkedIn", gh: "🐙 GitHub",
+          foot: "Construit avec HTML, CSS & JavaScript — aucun template · © 2026 Sree Charan Lagudu"
         }
+      };
+
+      function applyLang(lang) {
+        L = lang;
+        try { localStorage.setItem("sree-lang", L); } catch (e) {}
+        document.documentElement.lang = L;
+        var els = document.querySelectorAll("[data-i]");
+        Array.prototype.forEach.call(els, function (el) {
+          var key = el.getAttribute("data-i");
+          var v = STR[L][key];
+          if (v === undefined) return;
+          if (el.hasAttribute("data-ih")) el.innerHTML = v;
+          else el.textContent = v;
+        });
+        var btns = document.querySelectorAll(".lang-btn");
+        Array.prototype.forEach.call(btns, function (b) {
+          b.classList.toggle("active", b.getAttribute("data-lang") === L);
+        });
       }
-      function step() {
-        if (!reduced) {
-          ctx.clearRect(0, 0, W, H);
-          var i, j, p;
-          for (i = 0; i < pts.length; i++) {
-            p = pts[i];
-            p.x += p.vx; p.y += p.vy;
-            if (p.x < 0 || p.x > W) p.vx *= -1;
-            if (p.y < 0 || p.y > H) p.vy *= -1;
-          }
-          for (i = 0; i < pts.length; i++) {
-            for (j = i + 1; j < pts.length; j++) {
-              var dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y, d2 = dx * dx + dy * dy;
-              if (d2 < 12000) {
-                ctx.strokeStyle = "rgba(77,139,255," + ((1 - d2 / 12000) * 0.22).toFixed(3) + ")";
-                ctx.beginPath();
-                ctx.moveTo(pts[i].x, pts[i].y);
-                ctx.lineTo(pts[j].x, pts[j].y);
-                ctx.stroke();
-              }
-            }
-          }
-          for (i = 0; i < pts.length; i++) {
-            ctx.fillStyle = "rgba(160,200,255,0.7)";
-            ctx.beginPath();
-            ctx.arc(pts[i].x, pts[i].y, 1.3, 0, 6.2832);
-            ctx.fill();
-          }
+      var langBtns = document.querySelectorAll(".lang-btn");
+      Array.prototype.forEach.call(langBtns, function (b) {
+        b.addEventListener("click", function () { applyLang(b.getAttribute("data-lang")); });
+      });
+      applyLang(L);
+
+      /* ============ COUNTERS ============ */
+      function runCounter(el) {
+        var to = parseInt(el.getAttribute("data-to"), 10) || 0;
+        if (el.dataset.done) { el.textContent = to; return; }
+        el.dataset.done = "1";
+        if (reduced) { el.textContent = to; return; }
+        var t0 = null, dur = 1300;
+        function step(t) {
+          if (!t0) t0 = t;
+          var k = Math.min((t - t0) / dur, 1);
+          k = 1 - Math.pow(1 - k, 3);
+          el.textContent = Math.round(to * k);
+          if (k < 1) requestAnimationFrame(step);
         }
         requestAnimationFrame(step);
       }
-      window.addEventListener("resize", resize);
-      resize();
-      if (!reduced) step();
-
-      /* ---------- hero live training visualization ---------- */
-      (function () {
-        try {
-          var cv = document.getElementById("trainviz");
-          if (!cv) return;
-          var cx = cv.getContext("2d");
-          var CW = cv.width, CH = cv.height;
-          var statsEl = document.getElementById("trainstats");
-          var centers = [{ x: 0.32, y: 0.42, c: "#4d8bff" }, { x: 0.68, y: 0.62, c: "#37e6c3" }];
-          var pts2 = [];
-          function genPoints() {
-            pts2 = [];
-            for (var k = 0; k < 2; k++) {
-              for (var i = 0; i < 24; i++) {
-                pts2.push({
-                  x: centers[k].x + (Math.random() - 0.5) * 0.20,
-                  y: centers[k].y + (Math.random() - 0.5) * 0.24,
-                  c: k
-                });
-              }
-            }
-          }
-          genPoints();
-          var angle = 0.3, targetAngle = -1.11, epoch = 1, frame = 0;
-          var CYCLE = 300;
-          function drawViz() {
-            var t = (frame % CYCLE) / CYCLE;
-            if (frame % CYCLE === 0 && frame > 0) {
-              genPoints();
-              angle = targetAngle + (Math.random() - 0.5) * 0.5;
-              epoch = (epoch % 199) + 1;
-            }
-            angle += (targetAngle - angle) * 0.012;
-            frame++;
-            cx.clearRect(0, 0, CW, CH);
-            /* grid */
-            cx.strokeStyle = "rgba(255,255,255,0.05)";
-            cx.lineWidth = 1;
-            for (var g = 0; g < CW; g += 30) { cx.beginPath(); cx.moveTo(g, 0); cx.lineTo(g, CH); cx.stroke(); }
-            for (var g2 = 0; g2 < CH; g2 += 30) { cx.beginPath(); cx.moveTo(0, g2); cx.lineTo(CW, g2); cx.stroke(); }
-            /* decision boundary */
-            var mx = CW * 0.5, my = CH * 0.52;
-            var dx = Math.cos(angle) * CW, dy = Math.sin(angle) * CW;
-            var wob = Math.sin(frame * 0.05) * 6 * (1 - t * 0.9);
-            cx.strokeStyle = "rgba(169,123,255,0.85)";
-            cx.lineWidth = 2;
-            cx.setLineDash([8, 6]);
-            cx.beginPath();
-            cx.moveTo(mx - dx, my - dy + wob);
-            cx.lineTo(mx + dx, my + dy + wob);
-            cx.stroke();
-            cx.setLineDash([]);
-            /* points */
-            for (var i = 0; i < pts2.length; i++) {
-              var p = pts2[i];
-              cx.fillStyle = centers[p.c].c;
-              cx.shadowColor = centers[p.c].c;
-              cx.shadowBlur = 6;
-              cx.beginPath();
-              cx.arc(p.x * CW, p.y * CH, 3.6, 0, 6.2832);
-              cx.fill();
-            }
-            cx.shadowBlur = 0;
-            /* readout */
-            var loss = 0.66 * Math.exp(-3.2 * t) + 0.041 + Math.random() * 0.008;
-            var acc = 0.52 + 0.46 * Math.min(1, t * 1.25) - Math.random() * 0.015;
-            if (statsEl && frame % 5 === 0) {
-              statsEl.textContent =
-                "epoch " + String(epoch).padStart(3, "0") +
-                " · loss " + loss.toFixed(4) +
-                " · acc " + acc.toFixed(3);
-            }
-          }
-          if (reduced) {
-            frame = 250; drawViz();
-          } else {
-            (function loop() { drawViz(); requestAnimationFrame(loop); })();
-          }
-        } catch (err) { /* visualization is decorative — never break the page */ }
-      })();
-
-      /* ---------- pipeline spine + training HUD ---------- */
-      var spineFill = document.getElementById("spineFill");
-      var hud = document.getElementById("hud");
-      var hudText = document.getElementById("hud-text");
-      var sections = ["top", "about", "experience", "projects", "skills", "education", "contact"];
-      var nodes = document.querySelectorAll(".spine-node");
-      function onScroll() {
-        var doc = document.documentElement;
-        var p = Math.min(1, Math.max(0, (window.scrollY || doc.scrollTop) /
-          ((doc.scrollHeight || 1) - window.innerHeight)));
-        if (spineFill) spineFill.style.transform = "scaleY(" + p.toFixed(3) + ")";
-        /* active node */
-        var activeIdx = 0;
-        for (var i = 0; i < sections.length; i++) {
-          var el = document.getElementById(sections[i]);
-          if (el && el.getBoundingClientRect().top < window.innerHeight * 0.45) activeIdx = i;
-        }
-        nodes.forEach(function (n, i) { n.classList.toggle("active", i === activeIdx); });
-        /* HUD */
-        if (hud && hudText) {
-          var epoch = Math.max(1, Math.floor(p * 199));
-          var loss = (0.66 * (1 - p) + 0.031);
-          var acc = 0.5 + p * 0.373;
-          if (p > 0.985) {
-            hudText.textContent = "✓ training complete — deployed · acc 0.873";
-            hud.classList.add("done");
-          } else {
-            hudText.textContent =
-              "epoch " + String(epoch).padStart(3, "0") +
-              " · loss " + loss.toFixed(3) +
-              " · acc " + acc.toFixed(3);
-            hud.classList.remove("done");
-          }
-        }
-      }
-      window.addEventListener("scroll", onScroll, { passive: true });
-      onScroll();
-
-      /* ---------- cursor trail (desktop, motion-safe) ---------- */
-      if (!reduced && window.matchMedia("(pointer: fine)").matches) {
-        var lastTrail = 0;
-        document.addEventListener("mousemove", function (e) {
-          var now = Date.now();
-          if (now - lastTrail < 45) return;
-          lastTrail = now;
-          var d = document.createElement("div");
-          d.className = "trail-dot";
-          d.style.left = (e.clientX - 3) + "px";
-          d.style.top = (e.clientY - 3) + "px";
-          document.body.appendChild(d);
-          setTimeout(function () { if (d.parentNode) d.parentNode.removeChild(d); }, 950);
+      var cntIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { runCounter(en.target); cntIO.unobserve(en.target); }
         });
-      }
+      }, { threshold: 0.4 });
+      var cntEls = document.querySelectorAll(".cnt");
+      Array.prototype.forEach.call(cntEls, function (el) { cntIO.observe(el); });
+
+      /* ============ REVEAL ON SCROLL ============ */
+      var revIO = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { en.target.classList.add("in"); revIO.unobserve(en.target); }
+        });
+      }, { threshold: 0.12 });
+      var revEls = document.querySelectorAll(".reveal");
+      Array.prototype.forEach.call(revEls, function (el) { revIO.observe(el); });
+
+      /* ============ NAV ============ */
+      window.addEventListener("scroll", function () {
+        document.getElementById("nav").classList.toggle("scrolled", (window.scrollY || 0) > 10);
+      }, { passive: true });
+
+      /* ============ HERO WORKFLOW CANVAS (the n8n look) ============ */
+      (function () {
+        var c = document.getElementById("fx");
+        if (!c) return;
+        var ctx = c.getContext("2d");
+        if (!ctx) return;
+        var W = 0, H = 0, dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var PAL = ["234,75,113", "142,107,255", "47,214,165"];
+        var nodes = [], edges = [], dots = [], blobs = [];
+
+        function rr(x, y, w, h, r) {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.arcTo(x + w, y, x + w, y + h, r);
+          ctx.arcTo(x + w, y + h, x, y + h, r);
+          ctx.arcTo(x, y + h, x, y, r);
+          ctx.arcTo(x, y, x + w, y, r);
+          ctx.closePath();
+        }
+
+        function build() {
+          W = innerWidth; H = innerHeight;
+          c.width = W * dpr; c.height = H * dpr;
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          nodes = []; edges = []; dots = []; blobs = [];
+          var n = W < 720 ? 10 : 16, i;
+          for (i = 0; i < n; i++) {
+            nodes.push({ x: 0.06 + Math.random() * 0.88, y: 0.08 + Math.random() * 0.84, w: 44 + Math.random() * 26, h: 22 + Math.random() * 10, col: PAL[i % 3] });
+          }
+          for (var a = 0; a < nodes.length; a++) {
+            var dists = [];
+            for (var b = 0; b < nodes.length; b++) if (a !== b) dists.push([b, Math.abs(nodes[a].x - nodes[b].x) + Math.abs(nodes[a].y - nodes[b].y)]);
+            dists.sort(function (p, q) { return p[1] - q[1]; });
+            for (var k = 0; k < 2 && k < dists.length; k++) edges.push([a, dists[k][0]]);
+          }
+          for (var d = 0; d < Math.min(9, edges.length); d++) dots.push({ e: Math.floor(Math.random() * edges.length), t: Math.random(), s: 0.0016 + Math.random() * 0.0022 });
+          blobs = [
+            { x: 0.18, y: 0.25, r: 0.5, col: "234,75,113", ph: 0 },
+            { x: 0.82, y: 0.4, r: 0.55, col: "142,107,255", ph: 2 },
+            { x: 0.5, y: 0.85, r: 0.5, col: "47,214,165", ph: 4 }
+          ];
+        }
+
+        function frame(now) {
+          ctx.clearRect(0, 0, W, H);
+          var t = (now || 0) * 0.001, i;
+          for (i = 0; i < blobs.length; i++) {
+            var bl = blobs[i];
+            var bx = (bl.x + Math.sin(t * 0.2 + bl.ph) * 0.04) * W;
+            var by = (bl.y + Math.cos(t * 0.17 + bl.ph) * 0.04) * H;
+            var br = bl.r * Math.max(W, H) * 0.5;
+            var g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
+            g.addColorStop(0, "rgba(" + bl.col + ",0.10)");
+            g.addColorStop(1, "rgba(" + bl.col + ",0)");
+            ctx.fillStyle = g;
+            ctx.fillRect(0, 0, W, H);
+          }
+          ctx.lineWidth = 1.4;
+          for (i = 0; i < edges.length; i++) {
+            var e = edges[i], na = nodes[e[0]], nb = nodes[e[1]];
+            var ax = na.x * W, ay = na.y * H, bx2 = nb.x * W, by2 = nb.y * H;
+            ctx.strokeStyle = "rgba(164,171,196,0.13)";
+            ctx.beginPath();
+            ctx.moveTo(ax, ay);
+            ctx.quadraticCurveTo((ax + bx2) / 2, (ay + by2) / 2 + (ay === by2 ? 0 : 34), bx2, by2);
+            ctx.stroke();
+          }
+          for (i = 0; i < dots.length; i++) {
+            var dt = dots[i], ed = edges[dt.e];
+            if (!ed) continue;
+            var da = nodes[ed[0]], db = nodes[ed[1]];
+            var dax = da.x * W, day = da.y * H, dbx = db.x * W, dby = db.y * H;
+            var mx = (dax + dbx) / 2, my = (day + dby) / 2 + (day === dby ? 0 : 34);
+            var u = 1 - dt.t;
+            var x = u * u * dax + 2 * u * dt.t * mx + dt.t * dt.t * dbx;
+            var y = u * u * day + 2 * u * dt.t * my + dt.t * dt.t * dby;
+            dt.t += dt.s;
+            if (dt.t > 1) { dt.t = 0; dt.e = Math.floor(Math.random() * edges.length); }
+            ctx.fillStyle = "rgba(47,214,165,0.25)";
+            ctx.beginPath(); ctx.arc(x, y, 7, 0, 6.283); ctx.fill();
+            ctx.fillStyle = "rgba(47,214,165,0.9)";
+            ctx.beginPath(); ctx.arc(x, y, 3, 0, 6.283); ctx.fill();
+          }
+          for (i = 0; i < nodes.length; i++) {
+            var nd = nodes[i], nx = nd.x * W, ny = nd.y * H;
+            ctx.fillStyle = "rgba(22,26,41,0.92)";
+            ctx.strokeStyle = "rgba(60,68,102,0.9)";
+            rr(nx - nd.w / 2, ny - nd.h / 2, nd.w, nd.h, 7);
+            ctx.fill(); ctx.stroke();
+            ctx.fillStyle = "rgba(" + nd.col + ",1)";
+            ctx.beginPath(); ctx.arc(nx - nd.w / 2 + 9, ny, 3.4, 0, 6.283); ctx.fill();
+            ctx.fillStyle = "rgba(164,171,196,0.5)";
+            ctx.beginPath(); ctx.arc(nx + nd.w / 2 - 7, ny, 2.2, 0, 6.283); ctx.fill();
+          }
+          if (!reduced) requestAnimationFrame(frame);
+        }
+
+        build();
+        frame(0);
+        var rt = null;
+        window.addEventListener("resize", function () {
+          clearTimeout(rt);
+          rt = setTimeout(build, 180);
+        });
+      })();
     </script>
   </body>
 </html>
