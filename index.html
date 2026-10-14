@@ -1,5 +1,5 @@
 <!doctype html>
-<!-- v15: n8n-style dark one-page portfolio. Animated workflow-node hero, coral/purple accents, EN/FR. -->
+<!-- v16: n8n-style dark one-page portfolio. Animated workflow-node hero, coral/purple accents, EN/FR. -->
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -198,7 +198,7 @@
     <section id="stats">
       <div class="wrap">
         <div class="stats-grid">
-          <div class="stat"><b><i class="cnt" data-to="2">0</i></b><span data-i="st1"></span></div>
+          <div class="stat"><b><i class="cnt" data-to="3">0</i></b><span data-i="st1"></span></div>
           <div class="stat"><b><i class="cnt" data-to="6">0</i></b><span data-i="st2"></span></div>
           <div class="stat"><b><i class="cnt" data-to="91">0</i>%</b><span data-i="st3"></span></div>
           <div class="stat"><b><i class="cnt" data-to="22">0</i></b><span data-i="st4"></span></div>
@@ -235,6 +235,23 @@
         <div class="eyebrow" data-i="projectsEyebrow">02 · Projects</div>
         <h2 class="sec" data-i="projectsTitle"></h2>
         <div class="pgrid">
+          <div class="proj">
+            <div class="pic">🌊</div>
+            <h3 data-i="p0T"></h3>
+            <p data-i="p0D"></p>
+            <div class="metrics">
+              <div class="metric"><b data-i="p0M1"></b><span data-i="p0M1s"></span></div>
+              <div class="metric"><b data-i="p0M2"></b><span data-i="p0M2s"></span></div>
+              <div class="metric"><b data-i="p0M3"></b><span data-i="p0M3s"></span></div>
+            </div>
+            <div class="pchips">
+              <span class="pchip">Python</span><span class="pchip">Streamlit</span><span class="pchip">Folium</span><span class="pchip">NumPy</span><span class="pchip">Geospatial</span><span class="pchip">CI/CD</span>
+            </div>
+            <div class="plinks">
+              <a class="btn grad sm" href="https://floodwatch.streamlit.app" target="_blank" rel="noopener" data-i="demo"></a>
+              <a class="btn ghost sm" href="https://github.com/Sreecharan-lagudu/Floodwatch" target="_blank" rel="noopener" data-i="code"></a>
+            </div>
+          </div>
           <div class="proj">
             <div class="pic">💧</div>
             <h3 data-i="p1T"></h3>
@@ -428,6 +445,9 @@
           quote: "“A model isn't finished when the metrics look good — it's finished when someone can use it, question it, and trust it.”",
           quoteBy: "— my rule for every project",
           projectsEyebrow: "02 · Projects", projectsTitle: "Live projects — try them, they're real",
+          p0T: "FloodWatch — Street-Level Flood Alerts (SIH 2026)",
+          p0D: "Flood prediction street by street for 16 cities across India (Smart India Hackathon · SIH26085). Rainfall nowcasts + DEM terrain + flow accumulation + drainage proxies → an explainable 0–100 risk score per street. Search any city/state, click any street to inspect its score, watch alerts fire as the storm peaks — validated with precision/recall/F1 and ROC-AUC against flood ground truth.",
+          p0M1: "16", p0M1s: "cities · all-India", p0M2: "0–100", p0M2s: "risk score per street", p0M3: "ROC-AUC", p0M3s: "validated model",
           p1T: "Water Quality Prediction — MLOps Pipeline",
           p1D: "A production-style pipeline: Airflow ingests raw CSV chunks on a schedule, Great Expectations validates every record, and PostgreSQL routes clean vs. suspect data. A RandomForest model (22 sensor features) is served via FastAPI and visualized in Streamlit, with Grafana for monitoring.",
           p1M1: "91%", p1M1s: "original accuracy", p1M2: "87.3%", p1M2s: "live demo (measured)", p1M3: "7", p1M3s: "pipeline stages",
@@ -475,6 +495,9 @@
           quote: "« Un modèle n'est pas terminé quand les métriques sont bonnes — il est terminé quand quelqu'un peut l'utiliser, le questionner et lui faire confiance. »",
           quoteBy: "— ma règle pour chaque projet",
           projectsEyebrow: "02 · Projets", projectsTitle: "Projets en ligne — essayez, ils sont réels",
+          p0T: "FloodWatch — Alertes d'inondation par rue (SIH 2026)",
+          p0D: "Prédiction d'inondation rue par rue pour 16 villes en Inde (Smart India Hackathon · SIH26085). Nowcasts de pluie + terrain DEM + accumulation de flux + proxys de drainage → un score de risque explicable de 0 à 100 par rue. Recherche par ville/état, inspection au clic, alertes en direct au pic de la tempête — validé par précision/rappel/F1 et ROC-AUC.",
+          p0M1: "16", p0M1s: "villes · toute l'Inde", p0M2: "0–100", p0M2s: "score par rue", p0M3: "ROC-AUC", p0M3s: "modèle validé",
           p1T: "Prédiction de la qualité de l'eau — Pipeline MLOps",
           p1D: "Un pipeline de style production : Airflow ingère des fichiers CSV bruts selon un calendrier, Great Expectations valide chaque enregistrement, et PostgreSQL route les données propres vs suspectes. Un modèle RandomForest (22 caractéristiques de capteurs) est servi via FastAPI et visualisé dans Streamlit, avec Grafana pour le monitoring.",
           p1M1: "91%", p1M1s: "précision d'origine", p1M2: "87,3%", p1M2s: "démo (mesuré)", p1M3: "7", p1M3s: "étapes",
