@@ -253,6 +253,55 @@
     return { text: "Owner timing only", cls: CLS.zinc };
   }
 
+  // Plain-English explanation of exactly why a day does not match, and which file it is in.
+  function whyMismatch(e) {
+    var sIn = toMin(e.schedIn), sOut = toMin(e.schedOut);
+    var aIn = toMin(e.actIn), aOut = toMin(e.actOut);
+    var sd = dur(sIn, sOut), ad = dur(aIn, aOut);
+    var x = noteExtras(e);
+    var schedTxt = e.schedIn ? e.schedIn + "-" + e.schedOut + (sd !== null ? " (" + fmt(sd) + ")" : "") : "no schedule";
+    var mineTxt = (e.actIn && e.actOut) ? e.actIn + "-" + e.actOut + (ad !== null ? " (" + fmt(ad) + ")" : "") : "no worked record";
+    var inD = (sIn !== null && aIn !== null) ? aIn - sIn : null;
+    var outD = (sOut !== null && aOut !== null) ? aOut - sOut : null;
+    var bits = [];
+    if (inD !== null && inD !== 0) bits.push("you clocked in " + Math.abs(inD) + " min " + (inD > 0 ? "late" : "early"));
+    if (outD !== null && outD !== 0) bits.push("you left " + Math.abs(outD) + " min " + (outD > 0 ? "after" : "before") + " the scheduled end");
+    var detail = bits.length ? " (" + bits.join("; ") + ")" : "";
+    var extBit = (x.own !== x.mine) ? "; 2nd-shift totals differ (owner " + fmt(x.own) + " vs yours " + fmt(x.mine) + ")" : "";
+
+    if (sIn === null && x.own === 0 && (aIn !== null || x.mine > 0))
+      return { where: "owner file", text: "Your worked file shows " + mineTxt + ", but the owner file has no schedule for this day. Either the owner missed this row, or you worked a day that was not scheduled." };
+    if (sIn !== null && aIn === null && x.mine === 0)
+      return { where: "worked file", text: "The owner file schedules " + schedTxt + ", but your worked file has no record at all for this day. Either you did not work that day, or that day is missing from your file." };
+    if (aIn !== null && !e.actOut)
+      return { where: "worked file", text: "Your worked file has a start at " + e.actIn + " but no end time, so this day cannot be compared. Owner schedule: " + schedTxt + "." };
+    if (e.schedIn === e.actIn && e.schedOut === e.actOut && x.own !== x.mine) {
+      var netd = x.mine - x.own;
+      return { where: "both files", text: "The main shift matches (" + mineTxt + "), but the 2nd (split) shifts differ: the owner file adds " + (x.own ? fmt(x.own) : "nothing") + " while your file adds " + (x.mine ? fmt(x.mine) : "nothing") + extraSecondShiftDetail(e) + ", so the day is " + fmt(Math.abs(netd)) + (netd < 0 ? " SHORT" : " extra") + " overall." };
+    }
+    var effSd = (sd === null ? 0 : sd) + x.own;
+    var effAd = (ad === null ? 0 : ad) + x.mine;
+    var d = effAd - effSd;
+    if (d === 0)
+      return { where: "worked file", text: "Same total hours on both sides (" + fmt(effSd) + "), but the clock times differ: owner " + schedTxt + " vs yours " + mineTxt + detail + "." };
+    if (d > 0)
+      return { where: "worked file", text: "You worked " + fmt(d) + " MORE than scheduled: owner " + schedTxt + " vs yours " + mineTxt + detail + extBit + "." };
+    return { where: "worked file", text: "You worked " + fmt(-d) + " LESS than scheduled: owner " + schedTxt + " vs yours " + mineTxt + detail + extBit + "." };
+  }
+
+  function extraSecondShiftDetail(e) {
+    var owner = [], mine = [];
+    var re = /2nd (owner )?shift (\d{1,2}:\d{2})-(\d{1,2}:\d{2})/g;
+    var m;
+    while ((m = re.exec(e.note || "")) !== null) {
+      if (m[1]) owner.push(m[2] + "-" + m[3]); else mine.push(m[2] + "-" + m[3]);
+    }
+    var out = "";
+    if (owner.length) out += " [" + owner.join(" + ") + " in owner file";
+    if (mine.length) out += (owner.length ? " vs " : " [") + mine.join(" + ") + " in your file";
+    return out ? out + "]" : "";
+  }
+
   function sortedEntries() {
     return state.entries.slice().sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
   }
@@ -313,6 +362,8 @@
         var line = "  " + dayLabel(e.date) + " (" + e.date + "): owner " + (e.schedIn ? e.schedIn + "-" + e.schedOut + " (" + fmt(m.sd) + ")" : "no timing") + ", mine " + (e.actIn && e.actOut ? e.actIn + "-" + e.actOut + " (" + fmt(m.ad) + ")" : "no record");
         if (m.diff !== null) line += ", difference " + signed(m.diff);
         line += " [" + m.st.text + "]";
+        var w = whyMismatch(e);
+        line += NL + "      Why: " + w.text + " (problem in " + w.where + ")";
         lines.push(line);
       });
       lines.push("Total difference: " + signed(t.diff) + " (" + ((t.diff / 60) * state.rate).toFixed(2) + " EUR at " + state.rate + " EUR/h)");
@@ -358,10 +409,15 @@
       h += '<div class="text-xs text-zinc-400 mt-1 mb-2">Owner total ' + fmt(t.sched) + ' vs worked total ' + fmt(t.worked) + '. Overall difference: ' + signed(t.diff) + ' (' + ((t.diff / 60) * state.rate).toFixed(2) + ' EUR at ' + state.rate + ' EUR/h)</div>';
       mism.forEach(function (m) {
         var e = m.e;
-        h += '<div class="text-xs text-zinc-300 py-1.5 border-t border-zinc-800 flex items-start justify-between gap-2">';
+        var w = whyMismatch(e);
+        h += '<div class="py-1.5 border-t border-zinc-800">';
+        h += '<div class="text-xs text-zinc-300 flex items-start justify-between gap-2">';
         h += '<div><span class="font-semibold">' + dayLabel(e.date) + '</span> (' + e.date + '): owner ' + (e.schedIn ? e.schedIn + ' - ' + e.schedOut + ' (' + fmt(m.sd) + ')' : "no timing") + ' | mine ' + (e.actIn && e.actOut ? e.actIn + ' - ' + e.actOut + ' (' + fmt(m.ad) + ')' : (e.actIn ? "started " + e.actIn + ", no clock-out" : "no record"));
         if (m.diff !== null) h += ' | difference ' + signed(m.diff);
         h += '</div><span class="px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ' + m.st.cls + '">' + m.st.text + '</span>';
+        h += '</div>';
+        h += '<div class="mt-0.5 text-xs text-amber-200/80">Why: ' + esc(w.text) + '</div>';
+        h += '<div class="mt-0.5 text-xs text-zinc-500">Where: problem seen in the ' + esc(w.where) + '</div>';
         h += '</div>';
       });
     }
@@ -389,6 +445,7 @@
     if (inDiff !== null && inDiff !== 0) h += '<div class="text-xs mt-1 text-rose-400">Clocked in ' + (inDiff > 0 ? inDiff + " min late" : (-inDiff) + " min early") + '</div>';
     if (outDiff !== null && outDiff !== 0) h += '<div class="text-xs mt-0.5 ' + (outDiff < 0 ? "text-rose-400" : "text-emerald-400") + '">Left ' + (outDiff > 0 ? outDiff + " min after scheduled end" : (-outDiff) + " min before scheduled end") + '</div>';
     if (e.note) h += '<div class="text-xs text-zinc-500 mt-1">Note: ' + esc(e.note) + '</div>';
+    if (mismatch) { var w = whyMismatch(e); h += '<div class="text-xs mt-1 text-amber-200/80">Why: ' + esc(w.text) + ' <span class="text-zinc-500">(problem in ' + esc(w.where) + ')</span></div>'; }
     h += '</div><div class="flex flex-col items-end gap-2">';
     h += '<span class="px-2.5 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ' + st.cls + '">' + st.text + '</span>';
     h += '<div class="flex gap-1.5">';
