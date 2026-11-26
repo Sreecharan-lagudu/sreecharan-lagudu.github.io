@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shift Logger</title>
+<meta name="theme-color" content="#09090b">
+<script src="https://cdn.tailwindcss.com"></script>
+<style> input { color-scheme: dark; } </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+<div id="app" class="max-w-2xl mx-auto p-4 pb-16"></div>
+<script>
+(function () {
+  var LS = "shift-logger-v1";
+  var state = { name: "", rate: 8, entries: [] };
+  var ui = { editingId: null, month: "All", copied: false };
+  var NL = String.fromCharCode(10);
+
+  try {
+    var raw = localStorage.getItem(LS);
+    if (raw) {
+      var s = JSON.parse(raw);
+      if (s) {
+        state.name = s.name || "";
+        state.rate = s.rate || 8;
+        state.entries = s.entries || [];
+      }
+    }
+  } catch (e) {}
+
+  function save() {
+    try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {}
+  }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function toMin(t) { if (!t) return null; var p = t.split(":"); return Number(p[0]) * 60 + Number(p[1]); }
+  function dur(a, b) { if (a === null || b === null) return null; var d = b - a; if (d < 0) d += 1440; return d; }
+  function fmt(d) { if (d === null) return "-"; var h = Math.floor(d / 60); var m = d % 60; return m === 0 ? h + "h" : h + "h " + pad(m) + "m"; }
+  function signed(d) { return (d >= 0 ? "+" : "-") + fmt(Math.abs(d)); }
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function dayLabel(d) { return new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }); }
+  function monthTitle(k) { return new Date(k + "-15T12:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" }); }
+  function todayStr() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function uid() { return "e" + Date.now() + "-" + Math.floor(Math.random() * 10000); }
+
+  var CLS = {
+    green: "border-emerald-500/30 bg-emerald-500/15 text-emerald-400",
+    amber: "border-amber-500/30 bg-amber-500/15 text-amber-400",
+    rose: "border-rose-500/30 bg-rose-500/15 text-rose-400",
+    sky: "border-sky-500/30 bg-sky-500/15 text-sky-300",
+    zinc: "border-zinc-500/30 bg-zinc-500/15 text-zinc-300"
+  };
+
+  function statusFor(e) {
+    var aIn = toMin(e.actIn), sIn = toMin(e.schedIn);
+    if (sIn !== null && aIn === null) return { text: "Not worked", cls: CLS.rose };
+    if (sIn === null && aIn !== null) return { text: "Extra shift", cls: CLS.sky };
+    if (sIn !== null && aIn !== null) {
+      if (e.schedIn === e.actIn && e.schedOut === e.actOut) return { text: "Match", cls: CLS.green };
+      var diff = dur(aIn, toMin(e.actOut)) - dur(sIn, toMin(e.schedOut));
+      if (diff === 0) return { text: "Hours match, times differ", cls: CLS.amber };
+      if (diff > 0) return { text: "+" + fmt(diff) + " extra", cls: CLS.green };
+      return { text: fmt(-diff) + " short", cls: CLS.amber };
+    }
+    return { text: "Owner timing only", cls: CLS.zinc };
+  }
+
+  function sortedEntries() {
+    return state.entries.slice().sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+  }
+  function months() {
+    var set = {};
+    state.entries.forEach(function (e) { set[e.date.slice(0, 7)] = true; });
+    return Object.keys(set).sort().reverse();
+  }
+  function visible() {
+    var list = sortedEntries();
+    if (ui.month !== "All") list = list.filter(function (e) { return e.date.slice(0, 7) === ui.month; });
+    return list;
+  }
+  function totals(list) {
+    var t = { sched: 0, worked: 0, matched: 0, compared: 0, count: list.length, diff: 0 };
+    list.forEach(function (e) {
+      var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
+      var ad = dur(toMin(e.actIn), toMin(e.actOut));
+      if (e.actIn && sd !== null) t.sched += sd;
+      if (ad !== null) t.worked += ad;
+      if (e.actIn && e.schedIn) {
+        t.compared++;
+        if (e.schedIn === e.actIn && e.schedOut === e.actOut) t.matched++;
+      }
+    });
+    t.diff = t.worked - t.sched;
+    return t;
+  }
+
+  function buildReport() {
+    var list = visible().slice().reverse();
+    var t = totals(visible());
+    var lines = [];
+    lines.push("Shift log" + (state.name ? " - " + state.name : "") + " (" + (ui.month === "All" ? "all months" : monthTitle(ui.month)) + ")");
+    list.forEach(function (e) {
+      var line = dayLabel(e.date) + " (" + e.date + "): ";
+      if (e.actIn && e.actOut) line += "worked " + e.actIn + "-" + e.actOut + " (" + fmt(dur(toMin(e.actIn), toMin(e.actOut))) + ")";
+      else if (e.actIn) line += "worked from " + e.actIn + " (no clock-out)";
+      else line += "no record";
+      if (e.schedIn && e.schedOut) line += ", scheduled " + e.schedIn + "-" + e.schedOut;
+      if (e.note) line += " [" + e.note + "]";
+      lines.push(line);
+    });
+    lines.push("Total scheduled: " + fmt(t.sched) + ", total worked: " + fmt(t.worked) + ", difference: " + signed(t.diff));
+    lines.push("Pay at " + state.rate + " EUR/h: " + (t.worked / 60 * state.rate).toFixed(2) + " EUR");
+    return lines.join(NL);
+  }
+
+  var inputCls = "w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500";
+  var labelCls = "text-xs text-zinc-400 mb-1 block";
+
+  function chipCls(active) {
+    return active
+      ? "px-3.5 py-1.5 rounded-full text-sm border font-semibold bg-emerald-500 text-zinc-950 border-emerald-500"
+      : "px-3.5 py-1.5 rounded-full text-sm border bg-zinc-900 text-zinc-300 border-zinc-800 hover:border-zinc-600";
+  }
+
+  function statCard(label, value, sub, accent) {
+    var map = { green: "text-emerald-400", amber: "text-amber-400", rose: "text-rose-400", sky: "text-sky-400" };
+    var h = '<div class="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-4">';
+    h += '<div class="text-xs uppercase tracking-wide text-zinc-400">' + label + '</div>';
+    h += '<div class="mt-1 text-2xl font-bold ' + (map[accent] || "text-zinc-100") + '">' + value + '</div>';
+    if (sub) h += '<div class="mt-0.5 text-xs text-zinc-400">' + sub + '</div>';
+    return h + '</div>';
+  }
+
+  function entryHtml(e) {
+    var st = statusFor(e);
+    var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
+    var ad = dur(toMin(e.actIn), toMin(e.actOut));
+    var inDiff = (e.schedIn && e.actIn) ? toMin(e.actIn) - toMin(e.schedIn) : null;
+    var outDiff = (e.schedOut && e.actOut) ? toMin(e.actOut) - toMin(e.schedOut) : null;
+    var h = '<div class="rounded-2xl bg-zinc-900/60 border border-zinc-800 p-4">';
+    h += '<div class="flex items-start justify-between gap-2"><div>';
+    h += '<div class="font-semibold">' + dayLabel(e.date) + '</div>';
+    h += '<div class="text-xs text-sky-300/90 mt-1">Owner: ' + (e.schedIn ? esc(e.schedIn) + ' - ' + esc(e.schedOut) + (sd !== null ? ' (' + fmt(sd) + ')' : '') : 'not scheduled') + '</div>';
+    var workedTxt = "no record";
+    if (e.actIn && e.actOut) workedTxt = esc(e.actIn) + ' - ' + esc(e.actOut) + (ad !== null ? ' (' + fmt(ad) + ')' : '');
+    else if (e.actIn) workedTxt = "from " + esc(e.actIn) + " (no clock-out)";
+    h += '<div class="text-sm text-zinc-200 mt-0.5">Worked: ' + workedTxt + '</div>';
+    if (inDiff !== null && inDiff !== 0) h += '<div class="text-xs mt-1 text-rose-400">Clocked in ' + (inDiff > 0 ? inDiff + " min late" : (-inDiff) + " min early") + '</div>';
+    if (outDiff !== null && outDiff !== 0) h += '<div class="text-xs mt-0.5 ' + (outDiff < 0 ? "text-rose-400" : "text-emerald-400") + '">Left ' + (outDiff > 0 ? outDiff + " min after scheduled end" : (-outDiff) + " min before scheduled end") + '</div>';
+    if (e.note) h += '<div class="text-xs text-zinc-500 mt-1">Note: ' + esc(e.note) + '</div>';
+    h += '</div><div class="flex flex-col items-end gap-2">';
+    h += '<span class="px-2.5 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ' + st.cls + '">' + st.text + '</span>';
+    h += '<div class="flex gap-1.5">';
+    h += '<button data-act="edit" data-id="' + e.id + '" class="text-xs px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Edit</button>';
+    h += '<button data-act="del" data-id="' + e.id + '" class="text-xs px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-rose-900/60 text-zinc-300">Delete</button>';
+    h += '</div></div></div></div>';
+    return h;
+  }
+
+  function render() {
+    var list = visible();
+    var t = totals(list);
+    var ms = months();
+    var editing = ui.editingId ? state.entries.filter(function (e) { return e.id === ui.editingId; })[0] : null;
+    var h = "";
+
+    h += '<div class="mb-2"><h1 class="text-2xl font-bold">Shift Logger</h1>';
+    h += '<p class="text-sm text-zinc-400">Log your daily timings. Saved on this phone. Send the tally to the owner with one tap.</p></div>';
+
+    h += '<div class="flex gap-3 items-end mb-4">';
+    h += '<div class="flex-1"><label class="' + labelCls + '">Your name</label>';
+    h += '<input id="name-input" class="' + inputCls + '" placeholder="Enter your name" value="' + esc(state.name) + '"></div>';
+    h += '<div class="w-28"><label class="' + labelCls + '">Rate (EUR/h)</label>';
+    h += '<input id="rate-input" type="number" step="0.5" min="0" class="' + inputCls + '" value="' + state.rate + '"></div></div>';
+
+    h += '<div class="rounded-2xl bg-zinc-900/60 border p-4 mb-4 ' + (editing ? "border-emerald-500/40" : "border-zinc-800") + '">';
+    h += '<div class="font-semibold mb-3">' + (editing ? "Edit entry" : "Log a shift") + '</div>';
+    h += '<div class="grid grid-cols-2 md:grid-cols-5 gap-3">';
+    h += '<div><label class="' + labelCls + '">Date</label><input id="f-date" type="date" class="' + inputCls + '" value="' + (editing ? editing.date : todayStr()) + '"></div>';
+    h += '<div><label class="' + labelCls + '">Scheduled in</label><input id="f-sin" type="time" class="' + inputCls + '" value="' + (editing && editing.schedIn ? editing.schedIn : "") + '"></div>';
+    h += '<div><label class="' + labelCls + '">Scheduled out</label><input id="f-sout" type="time" class="' + inputCls + '" value="' + (editing && editing.schedOut ? editing.schedOut : "") + '"></div>';
+    h += '<div><label class="' + labelCls + '">Actual in</label><input id="f-ain" type="time" class="' + inputCls + '" value="' + (editing && editing.actIn ? editing.actIn : "") + '"></div>';
+    h += '<div><label class="' + labelCls + '">Actual out</label><input id="f-aout" type="time" class="' + inputCls + '" value="' + (editing && editing.actOut ? editing.actOut : "") + '"></div>';
+    h += '</div>';
+    h += '<div class="mt-3"><label class="' + labelCls + '">Note (optional)</label>';
+    h += '<input id="f-note" class="' + inputCls + '" placeholder="e.g. split shift, covered for someone" value="' + (editing && editing.note ? esc(editing.note) : "") + '"></div>';
+    h += '<div class="flex gap-2 mt-4">';
+    h += '<button data-act="save" class="px-4 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-semibold text-sm hover:bg-emerald-400">' + (editing ? "Save changes" : "Add entry") + '</button>';
+    if (editing) h += '<button data-act="cancel" class="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700">Cancel</button>';
+    h += '</div></div>';
+
+    if (ms.length > 0) {
+      h += '<div class="flex flex-wrap gap-2 mb-4">';
+      h += '<button data-act="month" data-v="All" class="' + chipCls(ui.month === "All") + '">All</button>';
+      ms.forEach(function (m) { h += '<button data-act="month" data-v="' + m + '" class="' + chipCls(ui.month === m) + '">' + monthTitle(m) + '</button>'; });
+      h += '</div>';
+    }
+
+    h += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">';
+    h += statCard("Scheduled", fmt(t.sched), t.count + " entries", "sky");
+    h += statCard("Worked", fmt(t.worked), t.matched + " of " + t.compared + " days match", "green");
+    h += statCard("Difference", signed(t.diff), "", t.diff < 0 ? "rose" : "green");
+    h += statCard("Pay", (t.worked / 60 * state.rate).toFixed(2) + " EUR", "at " + state.rate + " EUR/h", "amber");
+    h += '</div>';
+
+    h += '<div class="space-y-2.5 mb-4">';
+    if (list.length === 0) h += '<div class="text-center text-zinc-500 py-8 rounded-2xl border-2 border-dashed border-zinc-700 text-sm">No entries yet. Log your first shift above.</div>';
+    list.forEach(function (e) { h += entryHtml(e); });
+    h += '</div>';
+
+    if (list.length > 0) {
+      h += '<button data-act="copy" class="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-sm font-semibold text-zinc-300 hover:border-zinc-600 mb-2">' + (ui.copied ? "Copied! Paste it anywhere" : "Copy report (send to owner)") + '</button>';
+      h += '<button data-act="wa" class="w-full py-3 rounded-2xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 mb-2">Share report on WhatsApp</button>';
+      h += '<button data-act="export" class="w-full py-2.5 rounded-2xl text-xs text-zinc-500 hover:text-zinc-300">Download backup of my data</button>';
+    }
+
+    document.getElementById("app").innerHTML = h;
+  }
+
+  function onAction(act, el) {
+    if (act === "save") {
+      var date = document.getElementById("f-date").value;
+      if (!date) { alert("Please choose a date."); return; }
+      var entry = {
+        id: ui.editingId || uid(),
+        date: date,
+        schedIn: document.getElementById("f-sin").value || null,
+        schedOut: document.getElementById("f-sout").value || null,
+        actIn: document.getElementById("f-ain").value || null,
+        actOut: document.getElementById("f-aout").value || null,
+        note: document.getElementById("f-note").value || null
+      };
+      if (ui.editingId) {
+        state.entries = state.entries.map(function (e) { return e.id === ui.editingId ? entry : e; });
+      } else {
+        state.entries.push(entry);
+      }
+      ui.editingId = null;
+      save(); render();
+    } else if (act === "cancel") {
+      ui.editingId = null; render();
+    } else if (act === "edit") {
+      ui.editingId = el.getAttribute("data-id"); render(); window.scrollTo(0, 0);
+    } else if (act === "del") {
+      var id = el.getAttribute("data-id");
+      if (confirm("Delete this entry?")) {
+        state.entries = state.entries.filter(function (e) { return e.id !== id; });
+        if (ui.editingId === id) ui.editingId = null;
+        save(); render();
+      }
+    } else if (act === "month") {
+      ui.month = el.getAttribute("data-v"); render();
+    } else if (act === "copy") {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(buildReport()).then(function () {
+          ui.copied = true; render();
+          setTimeout(function () { ui.copied = false; render(); }, 1500);
+        }).catch(function () {});
+      } else { alert(buildReport()); }
+    } else if (act === "wa") {
+      window.open("https://wa.me/?text=" + encodeURIComponent(buildReport()), "_blank");
+    } else if (act === "export") {
+      var blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "shift-log-backup.json";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+  }
+
+  document.getElementById("app").addEventListener("click", function (ev) {
+    var el = ev.target.closest ? ev.target.closest("[data-act]") : null;
+    if (el) onAction(el.getAttribute("data-act"), el);
+  });
+  document.getElementById("app").addEventListener("change", function (ev) {
+    if (ev.target.id === "name-input") { state.name = ev.target.value; save(); }
+    else if (ev.target.id === "rate-input") { state.rate = Number(ev.target.value) || 0; save(); render(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
