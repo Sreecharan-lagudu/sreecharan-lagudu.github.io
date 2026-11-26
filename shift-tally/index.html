@@ -106,7 +106,7 @@
       var line = lines[i].trim();
       if (!line) continue;
       var times = [];
-      var tRe = /(?:^|[^0-9:.])([01]?[0-9]|2[0-3])[.:]([0-5][0-9])(?![0-9])/g;
+      var tRe = /(?:^|[^0-9:.h])([01]?[0-9]|2[0-3])[.:h]([0-5][0-9])(?![0-9])/g;
       var m;
       while ((m = tRe.exec(line)) !== null) times.push(m[1] + ":" + m[2]);
       var dateKey = findDate(line);
@@ -125,10 +125,20 @@
     return entries;
   }
 
+  function pairMatches(e, side, p) {
+    if (side === "owner") return e.schedIn === p.schedIn && e.schedOut === p.schedOut;
+    return e.actIn === p.actIn && e.actOut === p.actOut;
+  }
+
   function applyParsed(side, parsed) {
     var used = {};
-    var added = 0, updated = 0;
+    var added = 0, updated = 0, dupes = 0;
     parsed.forEach(function (p) {
+      var dup = false;
+      for (var k = 0; k < state.entries.length; k++) {
+        if (state.entries[k].date === p.date && pairMatches(state.entries[k], side, p)) { dup = true; break; }
+      }
+      if (dup) { dupes++; return; }
       var target = null;
       for (var i = 0; i < state.entries.length; i++) {
         var e = state.entries[i];
@@ -151,7 +161,7 @@
       }
     });
     save(); render();
-    return { added: added, updated: updated };
+    return { added: added, updated: updated, dupes: dupes };
   }
 
   function statusFor(e) {
@@ -186,15 +196,28 @@
     list.forEach(function (e) {
       var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
       var ad = dur(toMin(e.actIn), toMin(e.actOut));
-      if (e.actIn && sd !== null) t.sched += sd;
+      if (sd !== null) t.sched += sd;
       if (ad !== null) t.worked += ad;
       if (e.actIn && e.schedIn) {
         t.compared++;
-        if (e.schedIn === e.actIn && e.schedOut === e.actOut) t.matched++; else t.mismatch++;
+        if (e.schedIn === e.actIn && e.schedOut === e.actOut) t.matched++;
       }
+      if ((e.schedIn || e.actIn) && statusFor(e).text !== "Match") t.mismatch++;
     });
     t.diff = t.worked - t.sched;
     return t;
+  }
+
+  function mismatchList(list) {
+    var out = [];
+    list.forEach(function (e) {
+      var st = statusFor(e);
+      if (st.text === "Match") return;
+      var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
+      var ad = dur(toMin(e.actIn), toMin(e.actOut));
+      out.push({ e: e, st: st, sd: sd, ad: ad, diff: (sd !== null && ad !== null) ? ad - sd : null });
+    });
+    return out;
   }
 
   function buildReport() {
@@ -228,18 +251,6 @@
     return lines.join(NL);
   }
 
-  function mismatchList(list) {
-    var out = [];
-    list.forEach(function (e) {
-      var st = statusFor(e);
-      if (st.text === "Match") return;
-      var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
-      var ad = dur(toMin(e.actIn), toMin(e.actOut));
-      out.push({ e: e, st: st, sd: sd, ad: ad, diff: (sd !== null && ad !== null) ? ad - sd : null });
-    });
-    return out;
-  }
-
   var inputCls = "w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500";
   var labelCls = "text-xs text-zinc-400 mb-1 block";
   function chipCls(active) {
@@ -269,7 +280,7 @@
       mism.forEach(function (m) {
         var e = m.e;
         h += '<div class="text-xs text-zinc-300 py-1.5 border-t border-zinc-800 flex items-start justify-between gap-2">';
-        h += '<div><span class="font-semibold">' + dayLabel(e.date) + '</span> (' + e.date + '): owner ' + (e.schedIn ? e.schedIn + ' - ' + e.schedOut + ' (' + fmt(m.sd) + ')' : "no timing") + ' | mine ' + (e.actIn && e.actOut ? e.actIn + ' - ' + e.actOut + ' (' + fmt(m.ad) + ')' : (e.actIn ? "started " + e.actIn + ", no clock-out" : "no record"));
+        h += '<div><span class="font-semibold">' + dayLabel(e.date) + '</span> (' + e.date + '): owner ' + (e.schedIn ? e.schedIn + ' - ' + e.schedOut + ' (' + fmt(m.sd) + ')' : 'no timing') + ' | mine ' + (e.actIn && e.actOut ? e.actIn + ' - ' + e.actOut + ' (' + fmt(m.ad) + ')' : (e.actIn ? 'started ' + e.actIn + ', no clock-out' : 'no record'));
         if (m.diff !== null) h += ' | difference ' + signed(m.diff);
         h += '</div><span class="px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ' + m.st.cls + '">' + m.st.text + '</span>';
         h += '</div>';
@@ -490,7 +501,9 @@
       return;
     }
     var r = applyParsed(side, parsed);
-    setStatus(side, (name ? name + ": " : "") + "Found " + parsed.length + " dated timing(s). Added " + r.added + " day(s), updated " + r.updated + ".", false);
+    var msg = (name ? name + ": " : "") + "Found " + parsed.length + " dated timing(s). Added " + r.added + " day(s), updated " + r.updated;
+    if (r.dupes > 0) msg += ", skipped " + r.dupes + " duplicate(s)";
+    setStatus(side, msg + ".", false);
   }
 
   document.getElementById("file-owner").addEventListener("change", function () { processFile("owner", this.files[0]); });
