@@ -15,7 +15,7 @@
 <div class="max-w-2xl mx-auto p-4 pb-16">
   <div class="mb-2">
     <h1 class="text-2xl font-bold">Shift Tally</h1>
-    <p class="text-sm text-zinc-400">Add shifts day by day below, or load timings from files (Excel, PDF, photo, text). Everything is tallied in one list: owner timings vs your worked timings, match or mismatch.</p>
+    <p class="text-sm text-zinc-400">Load the owner timings and your records (files or day-wise entry). The tally shows the total difference and exactly which days do not match, and by how much.</p>
     <p class="text-sm mt-1"><a href="/shift-logger/" class="text-emerald-400 underline">Open the Shift Logger</a></p>
   </div>
 
@@ -202,23 +202,42 @@
     var t = totals(visible());
     var lines = [];
     lines.push("Shift tally" + " (" + (ui.month === "All" ? "all months" : monthTitle(ui.month)) + ")");
+    var mism = mismatchList(visible());
+    if (mism.length === 0) lines.push("All days match. Total difference 0.");
+    else {
+      lines.push("HOURS THAT DO NOT TALLY: " + mism.length + " day(s)");
+      mism.forEach(function (m) {
+        var e = m.e;
+        var line = "  " + dayLabel(e.date) + " (" + e.date + "): owner " + (e.schedIn ? e.schedIn + "-" + e.schedOut + " (" + fmt(m.sd) + ")" : "no timing") + ", mine " + (e.actIn && e.actOut ? e.actIn + "-" + e.actOut + " (" + fmt(m.ad) + ")" : "no record");
+        if (m.diff !== null) line += ", difference " + signed(m.diff);
+        line += " [" + m.st.text + "]";
+        lines.push(line);
+      });
+      lines.push("Total difference: " + signed(t.diff) + " (" + ((t.diff / 60) * state.rate).toFixed(2) + " EUR at " + state.rate + " EUR/h)");
+    }
+    lines.push("---");
+    lines.push("All days:");
     list.forEach(function (e) {
-      var line = e.date + ": ";
-      line += "owner " + (e.schedIn ? e.schedIn + "-" + e.schedOut + " (" + fmt(dur(toMin(e.schedIn), toMin(e.schedOut))) + ")" : "no timing");
+      var line = e.date + ": owner " + (e.schedIn ? e.schedIn + "-" + e.schedOut + " (" + fmt(dur(toMin(e.schedIn), toMin(e.schedOut))) + ")" : "no timing");
       line += " | mine " + (e.actIn && e.actOut ? e.actIn + "-" + e.actOut + " (" + fmt(dur(toMin(e.actIn), toMin(e.actOut))) + ")" : "no record");
-      if (e.schedIn && e.actIn) {
-        var inD = toMin(e.actIn) - toMin(e.schedIn);
-        var outD = toMin(e.actOut) - toMin(e.schedOut);
-        if (inD !== 0) line += " | in " + (inD > 0 ? inD + " min late" : (-inD) + " min early");
-        if (outD !== 0) line += " | out " + (outD > 0 ? outD + " min after" : (-outD) + " min before");
-      }
       line += " | " + statusFor(e).text;
       if (e.note) line += " [" + e.note + "]";
       lines.push(line);
     });
-    lines.push("Totals: scheduled " + fmt(t.sched) + ", worked " + fmt(t.worked) + ", difference " + signed(t.diff));
-    lines.push("Days compared: " + t.compared + ", exact matches " + t.matched + ", mismatches " + t.mismatch);
+    lines.push("Totals: owner scheduled " + fmt(t.sched) + ", mine worked " + fmt(t.worked) + ", difference " + signed(t.diff));
     return lines.join(NL);
+  }
+
+  function mismatchList(list) {
+    var out = [];
+    list.forEach(function (e) {
+      var st = statusFor(e);
+      if (st.text === "Match") return;
+      var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
+      var ad = dur(toMin(e.actIn), toMin(e.actOut));
+      out.push({ e: e, st: st, sd: sd, ad: ad, diff: (sd !== null && ad !== null) ? ad - sd : null });
+    });
+    return out;
   }
 
   var inputCls = "w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500";
@@ -234,6 +253,28 @@
     h += '<div class="text-xs uppercase tracking-wide text-zinc-400">' + label + '</div>';
     h += '<div class="mt-1 text-2xl font-bold ' + (map[accent] || "text-zinc-100") + '">' + value + '</div>';
     if (sub) h += '<div class="mt-0.5 text-xs text-zinc-400">' + sub + '</div>';
+    return h + '</div>';
+  }
+
+  function mismatchPanel(list, t) {
+    var mism = mismatchList(list);
+    var h = "";
+    h += '<div class="rounded-2xl border p-4 mb-4 ' + (mism.length ? "border-amber-500/40 bg-amber-500/5" : "border-emerald-500/30 bg-emerald-500/5") + '">';
+    if (mism.length === 0) {
+      h += '<div class="font-semibold text-emerald-400">All good: every day matches.</div>';
+      h += '<div class="text-xs text-zinc-400 mt-1">Owner timings and worked timings tally on all ' + list.length + ' day(s). Total difference 0.</div>';
+    } else {
+      h += '<div class="font-semibold text-amber-400">Hours do not tally on ' + mism.length + ' day(s)</div>';
+      h += '<div class="text-xs text-zinc-400 mt-1 mb-2">Owner total ' + fmt(t.sched) + ' vs worked total ' + fmt(t.worked) + '. Overall difference: ' + signed(t.diff) + ' (' + ((t.diff / 60) * state.rate).toFixed(2) + ' EUR at ' + state.rate + ' EUR/h)</div>';
+      mism.forEach(function (m) {
+        var e = m.e;
+        h += '<div class="text-xs text-zinc-300 py-1.5 border-t border-zinc-800 flex items-start justify-between gap-2">';
+        h += '<div><span class="font-semibold">' + dayLabel(e.date) + '</span> (' + e.date + '): owner ' + (e.schedIn ? e.schedIn + ' - ' + e.schedOut + ' (' + fmt(m.sd) + ')' : "no timing") + ' | mine ' + (e.actIn && e.actOut ? e.actIn + ' - ' + e.actOut + ' (' + fmt(m.ad) + ')' : (e.actIn ? "started " + e.actIn + ", no clock-out" : "no record"));
+        if (m.diff !== null) h += ' | difference ' + signed(m.diff);
+        h += '</div><span class="px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ' + m.st.cls + '">' + m.st.text + '</span>';
+        h += '</div>';
+      });
+    }
     return h + '</div>';
   }
 
@@ -302,9 +343,11 @@
     h += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">';
     h += statCard("Owner scheduled", fmt(t.sched), t.count + " entries", "sky");
     h += statCard("My worked", fmt(t.worked), t.matched + " of " + t.compared + " days match", "green");
-    h += statCard("Difference", signed(t.diff), t.mismatch + " mismatches", t.diff < 0 ? "rose" : "green");
+    h += statCard("Difference", signed(t.diff), t.mismatch + " days do not tally", t.diff < 0 ? "rose" : "green");
     h += statCard("Pay", (t.worked / 60 * state.rate).toFixed(2) + " EUR", "at " + state.rate + " EUR/h", "amber");
     h += '</div>';
+
+    h += mismatchPanel(list, t);
 
     h += '<div class="mb-4">';
     if (list.length === 0) h += '<div class="text-center text-zinc-500 py-8 rounded-2xl border-2 border-dashed border-zinc-700 text-sm">No shifts yet. Add one above or load timings from files.</div>';
