@@ -52,8 +52,9 @@
   var NL = String.fromCharCode(10);
   var LS = "shift-tally-v4";
   var OLD_LS = ["shift-tally-v3", "shift-tally-v2"];
+  var WHO_ME = "mine";
   var state = { entries: [], rate: 8 };
-  var ui = { editingId: null, month: "All", copied: false };
+  var ui = { editingId: null, month: "All", copied: false, who: WHO_ME };
   var stOwner = document.getElementById("s-owner");
   var stMine = document.getElementById("s-mine");
   var MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
@@ -65,12 +66,13 @@
     var order = [];
     var changed = false;
     state.entries.forEach(function (e) {
-      if (!byDate[e.date]) {
-        byDate[e.date] = { id: e.id, date: e.date, schedIn: e.schedIn, schedOut: e.schedOut, actIn: e.actIn, actOut: e.actOut, note: e.note };
-        order.push(e.date);
+      var key = (e.who || WHO_ME) + "|" + e.date;
+      if (!byDate[key]) {
+        byDate[key] = { id: e.id, date: e.date, who: (e.who || WHO_ME), schedIn: e.schedIn, schedOut: e.schedOut, actIn: e.actIn, actOut: e.actOut, note: e.note };
+        order.push(key);
       } else {
         changed = true;
-        var t = byDate[e.date];
+        var t = byDate[key];
         if (!t.schedIn && e.schedIn) { t.schedIn = e.schedIn; t.schedOut = e.schedOut; }
         if (!t.actIn && e.actIn) { t.actIn = e.actIn; t.actOut = e.actOut; }
         if (e.note && (!t.note || t.note.indexOf(e.note) === -1)) t.note = t.note ? t.note + "; " + e.note : e.note;
@@ -142,6 +144,7 @@
     var legacy = !raw;
     for (var qi = 0; !raw && qi < OLD_LS.length; qi++) raw = localStorage.getItem(OLD_LS[qi]);
     if (raw) { var s = JSON.parse(raw); if (s) { state.entries = s.entries || []; state.rate = s.rate || 8; } }
+    state.entries.forEach(function (e) { if (!e.who) e.who = WHO_ME; });
     if (dedupeAll()) save();
     if (legacy) { stripSecondNotes(); save(); }
     if (sanitizeSecondShifts()) save();
@@ -253,10 +256,10 @@
     parsed.forEach(function (p) {
       var target = null;
       for (var i = 0; i < state.entries.length; i++) {
-        if (state.entries[i].date === p.date) { target = state.entries[i]; break; }
+        if (state.entries[i].date === p.date && (state.entries[i].who || WHO_ME) === ui.who) { target = state.entries[i]; break; }
       }
       if (!target) {
-        target = { id: uid(), date: p.date, schedIn: null, schedOut: null, actIn: null, actOut: null, note: null };
+        target = { id: uid(), date: p.date, who: ui.who, schedIn: null, schedOut: null, actIn: null, actOut: null, note: null };
         state.entries.push(target);
         added++;
       } else updated++;
@@ -366,13 +369,22 @@
   function sortedEntries() {
     return state.entries.slice().sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
   }
+  // People: every upload and every manually added shift belongs to the person selected in the tabs.
+  function peopleList() {
+    var set = {};
+    set[WHO_ME] = true;
+    state.entries.forEach(function (e) { set[e.who || WHO_ME] = true; });
+    return Object.keys(set);
+  }
+  function whoLabel(k) { return k === WHO_ME ? "My shifts" : k; }
+
   function months() {
     var set = {};
-    state.entries.forEach(function (e) { set[e.date.slice(0, 7)] = true; });
+    state.entries.forEach(function (e) { if ((e.who || WHO_ME) === ui.who) set[e.date.slice(0, 7)] = true; });
     return Object.keys(set).sort().reverse();
   }
   function visible() {
-    var list = sortedEntries();
+    var list = sortedEntries().filter(function (e) { return (e.who || WHO_ME) === ui.who; });
     if (ui.month !== "All") list = list.filter(function (e) { return e.date.slice(0, 7) === ui.month; });
     return list;
   }
@@ -413,7 +425,7 @@
     var list = visible().slice().reverse();
     var t = totals(visible());
     var lines = [];
-    lines.push("Shift tally" + " (" + (ui.month === "All" ? "all months" : monthTitle(ui.month)) + ")");
+    lines.push("Shift tally" + " - " + whoLabel(ui.who) + " (" + (ui.month === "All" ? "all months" : monthTitle(ui.month)) + ")");
     var mism = mismatchList(visible());
     if (mism.length === 0) lines.push("All days match. Total difference 0.");
     else {
@@ -544,6 +556,16 @@
     if (editing) h += '<button data-act="cancel" class="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700">Cancel</button>';
     h += '</div></div>';
 
+    var ppl = peopleList();
+    h += '<div class="flex flex-wrap items-center gap-2 mb-4">';
+    h += '<span class="text-xs uppercase tracking-wide text-zinc-500 mr-1">Person</span>';
+    ppl.forEach(function (p) {
+      h += '<button data-act="who" data-v="' + esc(p) + '" class="' + chipCls(ui.who === p) + '">' + esc(whoLabel(p)) + '</button>';
+    });
+    h += '<button data-act="addWho" class="text-xs px-3 py-1.5 rounded-full border border-dashed border-zinc-600 text-zinc-400 hover:border-emerald-500 hover:text-emerald-400">+ Add person</button>';
+    if (ui.who !== WHO_ME) h += '<button data-act="delWho" class="text-xs px-3 py-1.5 rounded-full border border-rose-500/40 text-rose-400/90 hover:border-rose-500">Delete ' + esc(whoLabel(ui.who)) + '</button>';
+    h += '</div>';
+
     if (ms.length > 0) {
       h += '<div class="flex flex-wrap gap-2 mb-4">';
       h += '<button data-act="month" data-v="All" class="' + chipCls(ui.month === "All") + '">All</button>';
@@ -553,7 +575,7 @@
 
     h += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">';
     h += statCard("Owner scheduled", fmt(t.sched), t.count + " days", "sky");
-    h += statCard("My worked", fmt(t.worked), t.matched + " of " + t.compared + " days match", "green");
+    h += statCard(ui.who === WHO_ME ? "My worked" : esc(whoLabel(ui.who)) + " worked", fmt(t.worked), t.matched + " of " + t.compared + " days match", "green");
     h += statCard("Difference", signed(t.diff), t.mismatch + " days do not tally", t.diff < 0 ? "rose" : "green");
     h += statCard("Pay", (t.worked / 60 * state.rate).toFixed(2) + " EUR", "at " + state.rate + " EUR/h", "amber");
     h += '</div>';
@@ -568,7 +590,7 @@
     if (list.length > 0) {
       h += '<button data-act="copy" class="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-sm font-semibold text-zinc-300 hover:border-zinc-600 mb-2">' + (ui.copied ? "Copied! Paste it anywhere" : "Copy full tally report") + '</button>';
       h += '<button data-act="wa" class="w-full py-3 rounded-2xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 mb-2">Share tally on WhatsApp</button>';
-      h += '<button data-act="clear" class="w-full py-2.5 rounded-2xl text-xs text-zinc-500 hover:text-rose-400">Clear all shifts on this device</button>';
+      h += '<button data-act="clear" class="w-full py-2.5 rounded-2xl text-xs text-zinc-500 hover:text-rose-400">' + (ui.who === WHO_ME ? "Clear my shifts on this device" : "Clear " + esc(whoLabel(ui.who)) + "'s shifts (keeps the others)") + '</button>';
     }
 
     document.getElementById("app").innerHTML = h;
@@ -578,7 +600,8 @@
     if (act === "save") {
       var date = document.getElementById("f-date").value;
       if (!date) { alert("Please choose a date."); return; }
-      var existing = state.entries.filter(function (e2) { return e2.date === date && e2.id !== ui.editingId; })[0];
+      var editingEntry = ui.editingId ? state.entries.filter(function (e2) { return e2.id === ui.editingId; })[0] : null;
+      var existing = state.entries.filter(function (e2) { return e2.date === date && (e2.who || WHO_ME) === ui.who && e2.id !== ui.editingId; })[0];
       if (existing) {
         if (!confirm(dayLabel(date) + " already has an entry. Save into that day instead of creating a duplicate? (OK = yes, Cancel = edit again)")) return;
         if (ui.editingId) state.entries = state.entries.filter(function (e2) { return e2.id !== ui.editingId; });
@@ -592,6 +615,7 @@
         var entry = {
           id: ui.editingId || uid(),
           date: date,
+          who: (editingEntry && editingEntry.who) ? editingEntry.who : ui.who,
           schedIn: document.getElementById("f-sin").value || null,
           schedOut: document.getElementById("f-sout").value || null,
           actIn: document.getElementById("f-ain").value || null,
@@ -613,8 +637,29 @@
         save(); render();
       }
     } else if (act === "month") { ui.month = el.getAttribute("data-v"); render(); }
+    else if (act === "who") { ui.who = el.getAttribute("data-v") || WHO_ME; ui.month = "All"; ui.editingId = null; render(); }
+    else if (act === "addWho") {
+      var name = (window.prompt("Name of the new person (their owner sheet and worked hours will be tallied separately, never mixed with the others):") || "").trim();
+      if (!name) return;
+      if (name.length > 30) name = name.slice(0, 30);
+      ui.who = name; ui.month = "All"; ui.editingId = null;
+      save(); render();
+    }
+    else if (act === "delWho") {
+      if (ui.who === WHO_ME) { alert("You cannot delete 'My shifts', but you can clear it with the button at the bottom."); return; }
+      if (confirm("Delete ALL records of " + whoLabel(ui.who) + " (owner timings and worked hours)? This cannot be undone.")) {
+        state.entries = state.entries.filter(function (e2) { return (e2.who || WHO_ME) !== ui.who; });
+        ui.who = WHO_ME; ui.month = "All"; ui.editingId = null;
+        save(); render();
+      }
+    }
     else if (act === "clear") {
-      if (confirm("Clear all shifts on this device?")) { state.entries = []; save(); render(); }
+      var lab = ui.who === WHO_ME ? "your shifts" : whoLabel(ui.who) + "'s shifts";
+      if (confirm("Clear " + lab + " on this device? Other people's records are kept.")) {
+        state.entries = state.entries.filter(function (e2) { return (e2.who || WHO_ME) !== ui.who; });
+        ui.editingId = null;
+        save(); render();
+      }
     } else if (act === "copy") {
       if (navigator.clipboard) {
         navigator.clipboard.writeText(buildReport()).then(function () {
@@ -714,6 +759,7 @@
     }
     var r = applyParsed(side, parsed);
     var msg = (name ? name + ": " : "") + "Loaded " + r.added + " new day(s), refreshed " + r.updated + " existing day(s)";
+    if (ui.who !== WHO_ME) msg += " for " + whoLabel(ui.who);
     if (r.dups > 0) msg += ". Skipped " + r.dups + " overlapping duplicate row(s) (same shift written twice).";
     else msg += ". No duplicates created.";
     setStatus(side, msg, false);
