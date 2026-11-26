@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shift File Tally</title>
+<meta name="theme-color" content="#09090b">
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.0.5/dist/tesseract.min.js"></script>
+<style> input { color-scheme: dark; } </style>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+<div class="max-w-2xl mx-auto p-4 pb-16">
+  <div class="mb-4">
+    <h1 class="text-2xl font-bold">Shift File Tally</h1>
+    <p class="text-sm text-zinc-400">Upload the owner file and your file (Excel, PDF, photo or text). It extracts the dates and timings, tallies both, and shows every match and mismatch with full details.</p>
+    <p class="text-sm mt-1"><a href="/shift-logger/" class="text-emerald-400 underline">Open the Shift Logger</a></p>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-3 mb-4">
+    <div id="drop-owner" class="rounded-2xl bg-zinc-900/60 border border-sky-500/30 p-4">
+      <div class="font-semibold text-sky-300 mb-1">Owner schedule file</div>
+      <div class="text-xs text-zinc-500 mb-2">Excel (xlsx, xls, csv), PDF, photo or text. The owner timings.</div>
+      <input id="file-owner" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt,.md,.json,.pdf,image/*" class="w-full text-sm text-zinc-300 mb-2">
+      <div id="s-owner" class="text-xs text-zinc-400 min-h-[16px] mb-2"></div>
+      <textarea id="text-owner" rows="7" class="w-full rounded-xl bg-zinc-950 border border-zinc-800 p-3 text-sm font-mono resize-y focus:outline-none focus:border-emerald-500" placeholder="Extracted or pasted text appears here. You can edit it before comparing."></textarea>
+    </div>
+    <div id="drop-mine" class="rounded-2xl bg-zinc-900/60 border border-emerald-500/30 p-4">
+      <div class="font-semibold text-emerald-300 mb-1">My records file</div>
+      <div class="text-xs text-zinc-500 mb-2">Your worked hours in any of the same formats.</div>
+      <input id="file-mine" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt,.md,.json,.pdf,image/*" class="w-full text-sm text-zinc-300 mb-2">
+      <div id="s-mine" class="text-xs text-zinc-400 min-h-[16px] mb-2"></div>
+      <textarea id="text-mine" rows="7" class="w-full rounded-xl bg-zinc-950 border border-zinc-800 p-3 text-sm font-mono resize-y focus:outline-none focus:border-emerald-500" placeholder="Extracted or pasted text appears here. You can edit it before comparing."></textarea>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap gap-3 mb-5">
+    <button id="btn-compare" class="px-5 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-sm hover:bg-emerald-400">Compare and tally</button>
+    <button id="btn-clear" class="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700">Clear both</button>
+  </div>
+
+  <div id="results"></div>
+</div>
+
+<script>
+(function () {
+  var NL = String.fromCharCode(10);
+  var LS = "shift-file-tally-v1";
+  var txtOwner = document.getElementById("text-owner");
+  var txtMine = document.getElementById("text-mine");
+  var stOwner = document.getElementById("s-owner");
+  var stMine = document.getElementById("s-mine");
+  var CLS = {
+    green: "border-emerald-500/30 bg-emerald-500/15 text-emerald-400",
+    amber: "border-amber-500/30 bg-amber-500/15 text-amber-400",
+    rose: "border-rose-500/30 bg-rose-500/15 text-rose-400",
+    sky: "border-sky-500/30 bg-sky-500/15 text-sky-300",
+    zinc: "border-zinc-500/30 bg-zinc-500/15 text-zinc-300"
+  };
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function mk(y, mo, d) { return y + "-" + pad(mo) + "-" + pad(d); }
+  function toMin(t) { if (!t) return null; var p = String(t).split(":"); return Number(p[0]) * 60 + Number(p[1]); }
+  function dur(a, b) { if (a === null || b === null) return null; var d = b - a; if (d < 0) d += 1440; return d; }
+  function fmt(d) { if (d === null) return "-"; var h = Math.floor(d / 60); var m = d % 60; return m === 0 ? h + "h" : h + "h " + pad(m) + "m"; }
+  function esc(s) { return String(s === undefined || s === null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+  function dayLabel(d) { return new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", year: "numeric" }); }
+
+  var MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  var YEAR = new Date().getFullYear();
+
+  function findDate(line) {
+    var m = line.match(/\b(20\d{2})[-\/.](1[0-2]|0?[1-9])[-\/.](3[01]|[12][0-9]|0?[1-9])\b/);
+    if (m) return mk(Number(m[1]), Number(m[2]), Number(m[3]));
+    m = line.match(/\b(3[01]|[12][0-9]|0?[1-9])(?:st|nd|rd|th)?[ ,:-]*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*(?:[ ,:-]+(20\d{2}))?/i);
+    if (m) { var mo1 = MONTHS[m[2].slice(0, 3).toLowerCase()]; if (mo1) return mk(Number(m[3] || YEAR), mo1, Number(m[1])); }
+    m = line.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[ ,:-]+(3[01]|[12][0-9]|0?[1-9])(?:st|nd|rd|th)?(?:[ ,:-]+(20\d{2}))?/i);
+    if (m) { var mo2 = MONTHS[m[1].slice(0, 3).toLowerCase()]; if (mo2) return mk(Number(m[3] || YEAR), mo2, Number(m[2])); }
+    m = line.match(/\b(3[01]|[12][0-9]|0?[1-9])[-\/.](1[0-2]|0?[1-9])(?:[-\/.](20\d{2}))?\b/);
+    if (m) return mk(Number(m[3] || YEAR), Number(m[2]), Number(m[1]));
+    return null;
+  }
+
+  function parseSheet(text, side) {
+    var entries = [];
+    var curDate = null;
+    var lines = String(text || "").split(/\r?\n/);
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i].trim();
+      if (!line) continue;
+      var times = [];
+      var tRe = /(?:^|[^0-9:.])([01]?[0-9]|2[0-3])[.:]([0-5][0-9])(?![0-9])/g;
+      var m;
+      while ((m = tRe.exec(line)) !== null) times.push(m[1] + ":" + m[2]);
+      var dateKey = findDate(line);
+      if (dateKey) curDate = dateKey;
+      if (!curDate || times.length < 2) continue;
+      var e = { date: curDate, schedIn: null, schedOut: null, actIn: null, actOut: null };
+      if (times.length >= 4) {
+        e.schedIn = times[0]; e.schedOut = times[1]; e.actIn = times[2]; e.actOut = times[3];
+      } else if (side === "sched") {
+        e.schedIn = times[0]; e.schedOut = times[1];
+      } else {
+        e.actIn = times[0]; e.actOut = times[1];
+      }
+      entries.push(e);
+    }
+    return entries;
+  }
+
+  function buildRows() {
+    var oList = parseSheet(txtOwner.value, "sched");
+    var mList = parseSheet(txtMine.value, "act");
+    var map = {};
+    oList.forEach(function (e) { if (!map[e.date]) map[e.date] = {}; map[e.date].o = e; });
+    mList.forEach(function (e) { if (!map[e.date]) map[e.date] = {}; map[e.date].m = e; });
+    var rows = [];
+    Object.keys(map).sort().forEach(function (d) {
+      var o = map[d].o || null, m = map[d].m || null;
+      var schedSide = (o && o.schedIn) ? o : ((m && m.schedIn) ? m : null);
+      var actSide = (m && m.actIn) ? m : ((o && o.actIn) ? o : null);
+      var schedIn = schedSide ? schedSide.schedIn : null;
+      var schedOut = schedSide ? schedSide.schedOut : null;
+      var actIn = actSide ? actSide.actIn : null;
+      var actOut = actSide ? actSide.actOut : null;
+      var sd = dur(toMin(schedIn), toMin(schedOut));
+      var ad = dur(toMin(actIn), toMin(actOut));
+      var diff = (sd !== null && ad !== null) ? ad - sd : null;
+      var inDiff = (schedIn && actIn) ? toMin(actIn) - toMin(schedIn) : null;
+      var outDiff = (schedOut && actOut) ? toMin(actOut) - toMin(schedOut) : null;
+      var status, cls;
+      if (!o && m) { status = "Not on owner file"; cls = CLS.sky; }
+      else if (o && !m) { status = "Not in my records"; cls = CLS.rose; }
+      else if (sd === null && ad === null) { status = "No times found"; cls = CLS.zinc; }
+      else if (schedIn === actIn && schedOut === actOut) { status = "Exact match"; cls = CLS.green; }
+      else if (diff === 0) { status = "Hours match, times differ"; cls = CLS.amber; }
+      else if (diff > 0) { status = "+" + fmt(diff) + " extra"; cls = CLS.green; }
+      else { status = fmt(-diff) + " short"; cls = CLS.amber; }
+      rows.push({ date: d, schedIn: schedIn, schedOut: schedOut, actIn: actIn, actOut: actOut, sd: sd, ad: ad, diff: diff, inDiff: inDiff, outDiff: outDiff, status: status, cls: cls, exact: status === "Exact match" });
+    });
+    return rows;
+  }
+
+  function buildReport(rows, t) {
+    var lines = [];
+    lines.push("Shift file tally");
+    rows.forEach(function (r) {
+      var line = r.date + ": owner " + (r.schedIn ? r.schedIn + "-" + r.schedOut + " (" + fmt(r.sd) + ")" : "no timing");
+      line += " | mine " + (r.actIn ? r.actIn + "-" + r.actOut + " (" + fmt(r.ad) + ")" : "no record");
+      line += " | " + r.status;
+      if (r.inDiff !== null && r.inDiff !== 0) line += " | in " + (r.inDiff > 0 ? r.inDiff + " min late" : (-r.inDiff) + " min early");
+      if (r.outDiff !== null && r.outDiff !== 0) line += " | out " + (r.outDiff > 0 ? r.outDiff + " min after" : (-r.outDiff) + " min before");
+      lines.push(line);
+    });
+    lines.push("Totals: owner " + fmt(t.sched) + ", mine " + fmt(t.act) + ", difference " + (t.diff >= 0 ? "+" : "-") + fmt(Math.abs(t.diff)));
+    lines.push("Days: " + rows.length + ", exact matches " + t.exact + ", mismatches " + t.mismatch);
+    return lines.join(NL);
+  }
+
+  function statCard(label, value, sub, accent) {
+    var map = { green: "text-emerald-400", amber: "text-amber-400", rose: "text-rose-400", sky: "text-sky-400" };
+    var h = '<div class="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-4">';
+    h += '<div class="text-xs uppercase tracking-wide text-zinc-400">' + label + '</div>';
+    h += '<div class="mt-1 text-2xl font-bold ' + (map[accent] || "text-zinc-100") + '">' + value + '</div>';
+    if (sub) h += '<div class="mt-0.5 text-xs text-zinc-400">' + sub + '</div>';
+    return h + '</div>';
+  }
+
+  function updateResults() {
+    var rows = buildRows();
+    var t = { sched: 0, act: 0, diff: 0, exact: 0, mismatch: 0 };
+    rows.forEach(function (r) {
+      if (r.sd !== null && r.actIn) t.sched += r.sd;
+      if (r.ad !== null) t.act += r.ad;
+      if (r.exact) t.exact++; else if (r.schedIn && r.actIn) t.mismatch++;
+      if (r.schedIn && r.actIn) t.diff += (r.ad !== null ? r.ad : 0) - (r.sd !== null ? r.sd : 0);
+    });
+    if (t.diff === null) t.diff = 0;
+    var el = document.getElementById("results");
+    var h = "";
+    if (rows.length === 0) {
+      h = '<div class="rounded-2xl border-2 border-dashed border-zinc-700 p-8 text-center text-zinc-400 text-sm">Upload both files (or paste text) and press Compare and tally. Results appear here with every date, timing and difference.</div>';
+      el.innerHTML = h;
+      return;
+    }
+    h += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">';
+    h += statCard("Owner scheduled", fmt(t.sched), "", "sky");
+    h += statCard("My worked", fmt(t.act), "", "green");
+    h += statCard("Difference", (t.diff >= 0 ? "+" : "-") + fmt(Math.abs(t.diff)), "", t.diff < 0 ? "rose" : "green");
+    h += statCard("Mismatches", String(t.mismatch), t.exact + " exact of " + rows.length + " days", t.mismatch > 0 ? "amber" : "green");
+    h += '</div>';
+
+    rows.forEach(function (r) {
+      h += '<div class="rounded-2xl bg-zinc-900/60 border p-4 mb-2.5 ' + (r.exact ? "border-zinc-800" : "border-amber-500/40") + '">';
+      h += '<div class="flex items-start justify-between gap-2"><div>';
+      h += '<div class="font-semibold">' + esc(dayLabel(r.date)) + '</div>';
+      h += '<div class="text-xs text-sky-300/90 mt-1">Owner: ' + (r.schedIn ? esc(r.schedIn) + ' - ' + esc(r.schedOut) + ' (' + fmt(r.sd) + ')' : "no timing found") + '</div>';
+      h += '<div class="text-sm text-zinc-200 mt-0.5">Mine: ' + (r.actIn ? esc(r.actIn) + ' - ' + esc(r.actOut) + ' (' + fmt(r.ad) + ')' : "no record found") + '</div>';
+      h += '<div class="text-xs text-zinc-500 mt-1">Date: ' + esc(r.date) + '</div>';
+      if (r.inDiff !== null && r.inDiff !== 0) h += '<div class="text-xs mt-1 text-rose-400">Clock-in: ' + (r.inDiff > 0 ? r.inDiff + " min late" : (-r.inDiff) + " min early") + '</div>';
+      if (r.outDiff !== null && r.outDiff !== 0) h += '<div class="text-xs mt-0.5 ' + (r.outDiff < 0 ? "text-rose-400" : "text-emerald-400") + '">Clock-out: ' + (r.outDiff > 0 ? r.outDiff + " min after scheduled end" : (-r.outDiff) + " min before scheduled end") + '</div>';
+      if (r.diff !== null && r.diff !== 0) h += '<div class="text-xs mt-1 font-semibold ' + (r.diff < 0 ? "text-rose-400" : "text-emerald-400") + '">Hours difference: ' + (r.diff > 0 ? "+" : "") + fmt(r.diff) + '</div>';
+      h += '</div>';
+      h += '<span class="px-2.5 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ' + r.cls + '">' + r.status + '</span>';
+      h += '</div></div>';
+    });
+
+    h += '<button id="btn-copy" class="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-sm font-semibold text-zinc-300 hover:border-zinc-600 mb-2 mt-3">Copy full report</button>';
+    h += '<button id="btn-wa" class="w-full py-3 rounded-2xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500">Share on WhatsApp</button>';
+    el.innerHTML = h;
+    document.getElementById("btn-copy").onclick = function () {
+      var report = buildReport(buildRows(), t);
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(report);
+        this.textContent = "Copied! Paste it anywhere";
+        var btn = this;
+        setTimeout(function () { btn.textContent = "Copy full report"; }, 1500);
+      } else alert(report);
+    };
+    document.getElementById("btn-wa").onclick = function () {
+      window.open("https://wa.me/?text=" + encodeURIComponent(buildReport(buildRows(), t)), "_blank");
+    };
+  }
+
+  function saveLS() {
+    try { localStorage.setItem(LS, JSON.stringify({ o: txtOwner.value, m: txtMine.value })); } catch (e) {}
+  }
+  function loadLS() {
+    try {
+      var raw = localStorage.getItem(LS);
+      if (raw) { var s = JSON.parse(raw); txtOwner.value = s.o || ""; txtMine.value = s.m || ""; }
+    } catch (e) {}
+  }
+
+  function setStatus(side, msg, err) {
+    var el = side === "owner" ? stOwner : stMine;
+    el.textContent = msg;
+    el.className = "text-xs min-h-[16px] mb-2 " + (err ? "text-rose-400" : "text-zinc-400");
+  }
+
+  async function extractExcel(file) {
+    var buf = await file.arrayBuffer();
+    var wb = XLSX.read(buf, { type: "array", raw: false });
+    var lines = [];
+    wb.SheetNames.forEach(function (n) {
+      var rows = XLSX.utils.sheet_to_json(wb.Sheets[n], { header: 1, raw: false, defval: "" });
+      rows.forEach(function (r) {
+        var cells = [];
+        r.forEach(function (c) { var s = String(c === null ? "" : c).trim(); if (s) cells.push(s); });
+        if (cells.length) lines.push(cells.join(" "));
+      });
+    });
+    return lines.join(NL);
+  }
+
+  async function extractPdf(file) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    var buf = await file.arrayBuffer();
+    var doc = await pdfjsLib.getDocument({ data: buf }).promise;
+    var all = [];
+    for (var p = 1; p <= doc.numPages; p++) {
+      var page = await doc.getPage(p);
+      var tc = await page.getTextContent();
+      var line = [];
+      tc.items.forEach(function (it) {
+        line.push(it.str);
+        if (it.hasEOL) { var joined = line.join(" ").trim(); if (joined) all.push(joined); line = []; }
+      });
+      var last = line.join(" ").trim();
+      if (last) all.push(last);
+    }
+    var text = all.join(NL);
+    if (text.replace(/\s/g, "").length < 10) throw new Error("This PDF has no readable text (probably a scan). Take a photo of it instead and upload the image.");
+    return text;
+  }
+
+  async function extractImage(file, onProgress) {
+    var res = await Tesseract.recognize(file, "eng", {
+      logger: function (m) {
+        if (m.status === "recognizing text" && m.progress != null) onProgress("Reading photo... " + Math.round(m.progress * 100) + "%");
+        else if (m.status) onProgress(m.status + "...");
+      }
+    });
+    return res.data.text;
+  }
+
+  async function processFile(side, file) {
+    if (!file) return;
+    var name = file.name || file.type || "file";
+    var ext = (name.match(/\.[a-z0-9]+$/) || [""])[0].toLowerCase();
+    setStatus(side, "Processing " + name + "...", false);
+    try {
+      var text = "";
+      if (ext === ".xlsx" || ext === ".xls" || ext === ".xlsm" || ext === ".csv") {
+        text = await extractExcel(file);
+      } else if (ext === ".pdf") {
+        text = await extractPdf(file);
+      } else if (file.type.indexOf("image") === 0 || [".png", ".jpg", ".jpeg", ".webp", ".bmp"].indexOf(ext) !== -1) {
+        if (typeof Tesseract === "undefined") throw new Error("OCR engine could not load. Check your internet connection.");
+        text = await extractImage(file, function (msg) { setStatus(side, msg, false); });
+      } else {
+        text = await file.text();
+      }
+      if (side === "owner") txtOwner.value = text; else txtMine.value = text;
+      saveLS();
+      var days = parseSheet(text, side === "owner" ? "sched" : "act").length;
+      setStatus(side, name + ": extracted " + days + " dated timing(s). Review the text above, edit if needed, then press Compare and tally.", false);
+      updateResults();
+    } catch (err) {
+      setStatus(side, "Could not read the file: " + (err && err.message ? err.message : String(err)), true);
+    }
+  }
+
+  document.getElementById("file-owner").addEventListener("change", function () { processFile("owner", this.files[0]); });
+  document.getElementById("file-mine").addEventListener("change", function () { processFile("mine", this.files[0]); });
+
+  function wireDrop(id, side) {
+    var zone = document.getElementById(id);
+    ["dragenter", "dragover"].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); }); });
+    zone.addEventListener("drop", function (e) {
+      e.preventDefault();
+      if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) processFile(side, e.dataTransfer.files[0]);
+    });
+  }
+  wireDrop("drop-owner", "owner");
+  wireDrop("drop-mine", "mine");
+
+  txtOwner.addEventListener("input", saveLS);
+  txtMine.addEventListener("input", saveLS);
+  document.getElementById("btn-compare").addEventListener("click", updateResults);
+  document.getElementById("btn-clear").addEventListener("click", function () {
+    txtOwner.value = ""; txtMine.value = ""; saveLS(); updateResults();
+    stOwner.textContent = ""; stMine.textContent = "";
+  });
+
+  if (typeof XLSX !== "undefined") XLSX.read;
+  loadLS();
+  updateResults();
+})();
+</script>
+</body>
+</html>
