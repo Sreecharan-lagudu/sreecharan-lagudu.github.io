@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shift File Tally</title>
+<title>Shift Tally</title>
 <meta name="theme-color" content="#09090b">
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -13,45 +13,71 @@
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
 <div class="max-w-2xl mx-auto p-4 pb-16">
-  <div class="mb-4">
-    <h1 class="text-2xl font-bold">Shift File Tally</h1>
-    <p class="text-sm text-zinc-400">Upload the owner file and your file (Excel, PDF, photo or text). It extracts the dates and timings, tallies both, and shows every match and mismatch with full details.</p>
+  <div class="mb-2">
+    <h1 class="text-2xl font-bold">Shift Tally</h1>
+    <p class="text-sm text-zinc-400">Add shifts day by day below, or load timings from files (Excel, PDF, photo, text). Everything is tallied in one list: owner timings vs your worked timings, match or mismatch.</p>
     <p class="text-sm mt-1"><a href="/shift-logger/" class="text-emerald-400 underline">Open the Shift Logger</a></p>
   </div>
 
   <div class="grid md:grid-cols-2 gap-3 mb-4">
     <div id="drop-owner" class="rounded-2xl bg-zinc-900/60 border border-sky-500/30 p-4">
-      <div class="font-semibold text-sky-300 mb-1">Owner schedule file</div>
-      <div class="text-xs text-zinc-500 mb-2">Excel (xlsx, xls, csv), PDF, photo or text. The owner timings.</div>
-      <input id="file-owner" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt,.md,.json,.pdf,image/*" class="w-full text-sm text-zinc-300 mb-2">
-      <div id="s-owner" class="text-xs text-zinc-400 min-h-[16px] mb-2"></div>
-      <textarea id="text-owner" rows="7" class="w-full rounded-xl bg-zinc-950 border border-zinc-800 p-3 text-sm font-mono resize-y focus:outline-none focus:border-emerald-500" placeholder="Extracted or pasted text appears here. You can edit it before comparing."></textarea>
+      <div class="font-semibold text-sky-300 text-sm mb-1">Load owner timings from file</div>
+      <div class="text-xs text-zinc-500 mb-2">Owner schedule (xlsx, xls, csv, PDF, photo or text).</div>
+      <input id="file-owner" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt,.md,.json,.pdf,image/*" class="w-full text-xs text-zinc-300 mb-2">
+      <div id="s-owner" class="text-xs text-zinc-400 min-h-[16px] mb-1"></div>
+      <details class="text-xs text-zinc-400">
+        <summary class="cursor-pointer select-none">Or paste text</summary>
+        <textarea id="text-owner" rows="4" class="w-full mt-2 rounded-xl bg-zinc-950 border border-zinc-800 p-2 text-xs font-mono" placeholder="2 nov - Monday&#10;14:00 - 21:40"></textarea>
+        <button id="load-owner-text" class="mt-2 px-3 py-1.5 rounded-lg bg-sky-600 text-white text-xs font-semibold">Load into tally</button>
+      </details>
     </div>
     <div id="drop-mine" class="rounded-2xl bg-zinc-900/60 border border-emerald-500/30 p-4">
-      <div class="font-semibold text-emerald-300 mb-1">My records file</div>
+      <div class="font-semibold text-emerald-300 text-sm mb-1">Load my records from file</div>
       <div class="text-xs text-zinc-500 mb-2">Your worked hours in any of the same formats.</div>
-      <input id="file-mine" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt,.md,.json,.pdf,image/*" class="w-full text-sm text-zinc-300 mb-2">
-      <div id="s-mine" class="text-xs text-zinc-400 min-h-[16px] mb-2"></div>
-      <textarea id="text-mine" rows="7" class="w-full rounded-xl bg-zinc-950 border border-zinc-800 p-3 text-sm font-mono resize-y focus:outline-none focus:border-emerald-500" placeholder="Extracted or pasted text appears here. You can edit it before comparing."></textarea>
+      <input id="file-mine" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt,.md,.json,.pdf,image/*" class="w-full text-xs text-zinc-300 mb-2">
+      <div id="s-mine" class="text-xs text-zinc-400 min-h-[16px] mb-1"></div>
+      <details class="text-xs text-zinc-400">
+        <summary class="cursor-pointer select-none">Or paste text</summary>
+        <textarea id="text-mine" rows="4" class="w-full mt-2 rounded-xl bg-zinc-950 border border-zinc-800 p-2 text-xs font-mono" placeholder="02/11/2026&#10;14:00 - 21:40"></textarea>
+        <button id="load-mine-text" class="mt-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold">Load into tally</button>
+      </details>
     </div>
   </div>
 
-  <div class="flex flex-wrap gap-3 mb-5">
-    <button id="btn-compare" class="px-5 py-2.5 rounded-xl bg-emerald-500 text-zinc-950 font-bold text-sm hover:bg-emerald-400">Compare and tally</button>
-    <button id="btn-clear" class="px-4 py-2.5 rounded-xl bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700">Clear both</button>
-  </div>
-
-  <div id="results"></div>
+  <div id="app"></div>
 </div>
 
 <script>
 (function () {
   var NL = String.fromCharCode(10);
-  var LS = "shift-file-tally-v1";
-  var txtOwner = document.getElementById("text-owner");
-  var txtMine = document.getElementById("text-mine");
+  var LS = "shift-tally-v2";
+  var state = { entries: [], rate: 8 };
+  var ui = { editingId: null, month: "All", copied: false };
   var stOwner = document.getElementById("s-owner");
   var stMine = document.getElementById("s-mine");
+  var MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  var YEAR = new Date().getFullYear();
+
+  try {
+    var raw = localStorage.getItem(LS);
+    if (raw) { var s = JSON.parse(raw); if (s) { state.entries = s.entries || []; state.rate = s.rate || 8; } }
+  } catch (e) {}
+
+  function save() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function mk(y, mo, d) { return y + "-" + pad(mo) + "-" + pad(d); }
+  function toMin(t) { if (!t) return null; var p = String(t).split(":"); return Number(p[0]) * 60 + Number(p[1]); }
+  function dur(a, b) { if (a === null || b === null) return null; var d = b - a; if (d < 0) d += 1440; return d; }
+  function fmt(d) { if (d === null) return "-"; var h = Math.floor(d / 60); var m = d % 60; return m === 0 ? h + "h" : h + "h " + pad(m) + "m"; }
+  function signed(d) { return (d >= 0 ? "+" : "-") + fmt(Math.abs(d)); }
+  function esc(s) {
+    return String(s === undefined || s === null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  function dayLabel(d) { return new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }); }
+  function monthTitle(k) { return new Date(k + "-15T12:00:00").toLocaleDateString("en-GB", { month: "long", year: "numeric" }); }
+  function todayStr() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function uid() { return "t" + Date.now() + "-" + Math.floor(Math.random() * 10000); }
+
   var CLS = {
     green: "border-emerald-500/30 bg-emerald-500/15 text-emerald-400",
     amber: "border-amber-500/30 bg-amber-500/15 text-amber-400",
@@ -59,17 +85,6 @@
     sky: "border-sky-500/30 bg-sky-500/15 text-sky-300",
     zinc: "border-zinc-500/30 bg-zinc-500/15 text-zinc-300"
   };
-
-  function pad(n) { return (n < 10 ? "0" : "") + n; }
-  function mk(y, mo, d) { return y + "-" + pad(mo) + "-" + pad(d); }
-  function toMin(t) { if (!t) return null; var p = String(t).split(":"); return Number(p[0]) * 60 + Number(p[1]); }
-  function dur(a, b) { if (a === null || b === null) return null; var d = b - a; if (d < 0) d += 1440; return d; }
-  function fmt(d) { if (d === null) return "-"; var h = Math.floor(d / 60); var m = d % 60; return m === 0 ? h + "h" : h + "h " + pad(m) + "m"; }
-  function esc(s) { return String(s === undefined || s === null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
-  function dayLabel(d) { return new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short", year: "numeric" }); }
-
-  var MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
-  var YEAR = new Date().getFullYear();
 
   function findDate(line) {
     var m = line.match(/\b(20\d{2})[-\/.](1[0-2]|0?[1-9])[-\/.](3[01]|[12][0-9]|0?[1-9])\b/);
@@ -110,55 +125,109 @@
     return entries;
   }
 
-  function buildRows() {
-    var oList = parseSheet(txtOwner.value, "sched");
-    var mList = parseSheet(txtMine.value, "act");
-    var map = {};
-    oList.forEach(function (e) { if (!map[e.date]) map[e.date] = {}; map[e.date].o = e; });
-    mList.forEach(function (e) { if (!map[e.date]) map[e.date] = {}; map[e.date].m = e; });
-    var rows = [];
-    Object.keys(map).sort().forEach(function (d) {
-      var o = map[d].o || null, m = map[d].m || null;
-      var schedSide = (o && o.schedIn) ? o : ((m && m.schedIn) ? m : null);
-      var actSide = (m && m.actIn) ? m : ((o && o.actIn) ? o : null);
-      var schedIn = schedSide ? schedSide.schedIn : null;
-      var schedOut = schedSide ? schedSide.schedOut : null;
-      var actIn = actSide ? actSide.actIn : null;
-      var actOut = actSide ? actSide.actOut : null;
-      var sd = dur(toMin(schedIn), toMin(schedOut));
-      var ad = dur(toMin(actIn), toMin(actOut));
-      var diff = (sd !== null && ad !== null) ? ad - sd : null;
-      var inDiff = (schedIn && actIn) ? toMin(actIn) - toMin(schedIn) : null;
-      var outDiff = (schedOut && actOut) ? toMin(actOut) - toMin(schedOut) : null;
-      var status, cls;
-      if (!o && m) { status = "Not on owner file"; cls = CLS.sky; }
-      else if (o && !m) { status = "Not in my records"; cls = CLS.rose; }
-      else if (sd === null && ad === null) { status = "No times found"; cls = CLS.zinc; }
-      else if (schedIn === actIn && schedOut === actOut) { status = "Exact match"; cls = CLS.green; }
-      else if (diff === 0) { status = "Hours match, times differ"; cls = CLS.amber; }
-      else if (diff > 0) { status = "+" + fmt(diff) + " extra"; cls = CLS.green; }
-      else { status = fmt(-diff) + " short"; cls = CLS.amber; }
-      rows.push({ date: d, schedIn: schedIn, schedOut: schedOut, actIn: actIn, actOut: actOut, sd: sd, ad: ad, diff: diff, inDiff: inDiff, outDiff: outDiff, status: status, cls: cls, exact: status === "Exact match" });
+  function applyParsed(side, parsed) {
+    var used = {};
+    var added = 0, updated = 0;
+    parsed.forEach(function (p) {
+      var target = null;
+      for (var i = 0; i < state.entries.length; i++) {
+        var e = state.entries[i];
+        if (e.date !== p.date || used[e.id]) continue;
+        if (side === "owner" && !e.schedIn) { target = e; break; }
+        if (side === "mine" && !e.actIn) { target = e; break; }
+      }
+      if (!target) {
+        target = { id: uid(), date: p.date, schedIn: null, schedOut: null, actIn: null, actOut: null, note: null };
+        state.entries.push(target);
+        added++;
+      } else updated++;
+      used[target.id] = true;
+      if (side === "owner") {
+        target.schedIn = p.schedIn; target.schedOut = p.schedOut;
+        if (p.actIn) { target.actIn = p.actIn; target.actOut = p.actOut; }
+      } else {
+        target.actIn = p.actIn; target.actOut = p.actOut;
+        if (p.schedIn) { target.schedIn = p.schedIn; target.schedOut = p.schedOut; }
+      }
     });
-    return rows;
+    save(); render();
+    return { added: added, updated: updated };
   }
 
-  function buildReport(rows, t) {
+  function statusFor(e) {
+    var aIn = toMin(e.actIn), sIn = toMin(e.schedIn);
+    if (sIn !== null && aIn === null) return { text: "Not worked", cls: CLS.rose };
+    if (sIn === null && aIn !== null) return { text: "Extra shift", cls: CLS.sky };
+    if (sIn !== null && aIn !== null) {
+      if (e.schedIn === e.actIn && e.schedOut === e.actOut) return { text: "Match", cls: CLS.green };
+      var diff = dur(aIn, toMin(e.actOut)) - dur(sIn, toMin(e.schedOut));
+      if (diff === 0) return { text: "Hours match, times differ", cls: CLS.amber };
+      if (diff > 0) return { text: "+" + fmt(diff) + " extra", cls: CLS.green };
+      return { text: fmt(-diff) + " short", cls: CLS.amber };
+    }
+    return { text: "Owner timing only", cls: CLS.zinc };
+  }
+
+  function sortedEntries() {
+    return state.entries.slice().sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
+  }
+  function months() {
+    var set = {};
+    state.entries.forEach(function (e) { set[e.date.slice(0, 7)] = true; });
+    return Object.keys(set).sort().reverse();
+  }
+  function visible() {
+    var list = sortedEntries();
+    if (ui.month !== "All") list = list.filter(function (e) { return e.date.slice(0, 7) === ui.month; });
+    return list;
+  }
+  function totals(list) {
+    var t = { sched: 0, worked: 0, matched: 0, compared: 0, mismatch: 0, count: list.length, diff: 0 };
+    list.forEach(function (e) {
+      var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
+      var ad = dur(toMin(e.actIn), toMin(e.actOut));
+      if (e.actIn && sd !== null) t.sched += sd;
+      if (ad !== null) t.worked += ad;
+      if (e.actIn && e.schedIn) {
+        t.compared++;
+        if (e.schedIn === e.actIn && e.schedOut === e.actOut) t.matched++; else t.mismatch++;
+      }
+    });
+    t.diff = t.worked - t.sched;
+    return t;
+  }
+
+  function buildReport() {
+    var list = visible().slice().reverse();
+    var t = totals(visible());
     var lines = [];
-    lines.push("Shift file tally");
-    rows.forEach(function (r) {
-      var line = r.date + ": owner " + (r.schedIn ? r.schedIn + "-" + r.schedOut + " (" + fmt(r.sd) + ")" : "no timing");
-      line += " | mine " + (r.actIn ? r.actIn + "-" + r.actOut + " (" + fmt(r.ad) + ")" : "no record");
-      line += " | " + r.status;
-      if (r.inDiff !== null && r.inDiff !== 0) line += " | in " + (r.inDiff > 0 ? r.inDiff + " min late" : (-r.inDiff) + " min early");
-      if (r.outDiff !== null && r.outDiff !== 0) line += " | out " + (r.outDiff > 0 ? r.outDiff + " min after" : (-r.outDiff) + " min before");
+    lines.push("Shift tally" + " (" + (ui.month === "All" ? "all months" : monthTitle(ui.month)) + ")");
+    list.forEach(function (e) {
+      var line = e.date + ": ";
+      line += "owner " + (e.schedIn ? e.schedIn + "-" + e.schedOut + " (" + fmt(dur(toMin(e.schedIn), toMin(e.schedOut))) + ")" : "no timing");
+      line += " | mine " + (e.actIn && e.actOut ? e.actIn + "-" + e.actOut + " (" + fmt(dur(toMin(e.actIn), toMin(e.actOut))) + ")" : "no record");
+      if (e.schedIn && e.actIn) {
+        var inD = toMin(e.actIn) - toMin(e.schedIn);
+        var outD = toMin(e.actOut) - toMin(e.schedOut);
+        if (inD !== 0) line += " | in " + (inD > 0 ? inD + " min late" : (-inD) + " min early");
+        if (outD !== 0) line += " | out " + (outD > 0 ? outD + " min after" : (-outD) + " min before");
+      }
+      line += " | " + statusFor(e).text;
+      if (e.note) line += " [" + e.note + "]";
       lines.push(line);
     });
-    lines.push("Totals: owner " + fmt(t.sched) + ", mine " + fmt(t.act) + ", difference " + (t.diff >= 0 ? "+" : "-") + fmt(Math.abs(t.diff)));
-    lines.push("Days: " + rows.length + ", exact matches " + t.exact + ", mismatches " + t.mismatch);
+    lines.push("Totals: scheduled " + fmt(t.sched) + ", worked " + fmt(t.worked) + ", difference " + signed(t.diff));
+    lines.push("Days compared: " + t.compared + ", exact matches " + t.matched + ", mismatches " + t.mismatch);
     return lines.join(NL);
   }
 
+  var inputCls = "w-full rounded-xl bg-zinc-950 border border-zinc-800 px-3 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-emerald-500";
+  var labelCls = "text-xs text-zinc-400 mb-1 block";
+  function chipCls(active) {
+    return active
+      ? "px-3.5 py-1.5 rounded-full text-sm border font-semibold bg-emerald-500 text-zinc-950 border-emerald-500"
+      : "px-3.5 py-1.5 rounded-full text-sm border bg-zinc-900 text-zinc-300 border-zinc-800 hover:border-zinc-600";
+  }
   function statCard(label, value, sub, accent) {
     var map = { green: "text-emerald-400", amber: "text-amber-400", rose: "text-rose-400", sky: "text-sky-400" };
     var h = '<div class="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-4">';
@@ -168,76 +237,142 @@
     return h + '</div>';
   }
 
-  function updateResults() {
-    var rows = buildRows();
-    var t = { sched: 0, act: 0, diff: 0, exact: 0, mismatch: 0 };
-    rows.forEach(function (r) {
-      if (r.sd !== null && r.actIn) t.sched += r.sd;
-      if (r.ad !== null) t.act += r.ad;
-      if (r.exact) t.exact++; else if (r.schedIn && r.actIn) t.mismatch++;
-      if (r.schedIn && r.actIn) t.diff += (r.ad !== null ? r.ad : 0) - (r.sd !== null ? r.sd : 0);
-    });
-    if (t.diff === null) t.diff = 0;
-    var el = document.getElementById("results");
+  function entryHtml(e) {
+    var st = statusFor(e);
+    var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
+    var ad = dur(toMin(e.actIn), toMin(e.actOut));
+    var inDiff = (e.schedIn && e.actIn) ? toMin(e.actIn) - toMin(e.schedIn) : null;
+    var outDiff = (e.schedOut && e.actOut) ? toMin(e.actOut) - toMin(e.schedOut) : null;
+    var mismatch = e.schedIn && e.actIn && !(e.schedIn === e.actIn && e.schedOut === e.actOut);
+    var h = '<div class="rounded-2xl bg-zinc-900/60 border p-4 mb-2.5 ' + (mismatch ? "border-amber-500/40" : "border-zinc-800") + '">';
+    h += '<div class="flex items-start justify-between gap-2"><div>';
+    h += '<div class="font-semibold">' + dayLabel(e.date) + '</div>';
+    h += '<div class="text-xs text-sky-300/90 mt-1">Owner: ' + (e.schedIn ? esc(e.schedIn) + ' - ' + esc(e.schedOut) + (sd !== null ? ' (' + fmt(sd) + ')' : '') : 'not scheduled') + '</div>';
+    var workedTxt = "no record";
+    if (e.actIn && e.actOut) workedTxt = esc(e.actIn) + ' - ' + esc(e.actOut) + (ad !== null ? ' (' + fmt(ad) + ')' : '');
+    else if (e.actIn) workedTxt = "from " + esc(e.actIn) + " (no clock-out)";
+    h += '<div class="text-sm text-zinc-200 mt-0.5">Worked: ' + workedTxt + '</div>';
+    if (inDiff !== null && inDiff !== 0) h += '<div class="text-xs mt-1 text-rose-400">Clocked in ' + (inDiff > 0 ? inDiff + " min late" : (-inDiff) + " min early") + '</div>';
+    if (outDiff !== null && outDiff !== 0) h += '<div class="text-xs mt-0.5 ' + (outDiff < 0 ? "text-rose-400" : "text-emerald-400") + '">Left ' + (outDiff > 0 ? outDiff + " min after scheduled end" : (-outDiff) + " min before scheduled end") + '</div>';
+    if (e.note) h += '<div class="text-xs text-zinc-500 mt-1">Note: ' + esc(e.note) + '</div>';
+    h += '</div><div class="flex flex-col items-end gap-2">';
+    h += '<span class="px-2.5 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ' + st.cls + '">' + st.text + '</span>';
+    h += '<div class="flex gap-1.5">';
+    h += '<button data-act="edit" data-id="' + e.id + '" class="text-xs px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300">Edit</button>';
+    h += '<button data-act="del" data-id="' + e.id + '" class="text-xs px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-rose-900/60 text-zinc-300">Delete</button>';
+    h += '</div></div></div></div>';
+    return h;
+  }
+
+  function render() {
+    var list = visible();
+    var t = totals(list);
+    var ms = months();
+    var editing = ui.editingId ? state.entries.filter(function (e) { return e.id === ui.editingId; })[0] : null;
     var h = "";
-    if (rows.length === 0) {
-      h = '<div class="rounded-2xl border-2 border-dashed border-zinc-700 p-8 text-center text-zinc-400 text-sm">Upload both files (or paste text) and press Compare and tally. Results appear here with every date, timing and difference.</div>';
-      el.innerHTML = h;
-      return;
+
+    h += '<div class="flex gap-3 items-end mb-4">';
+    h += '<div class="w-28"><label class="' + labelCls + '">Rate (EUR/h)</label>';
+    h += '<input id="rate-input" type="number" step="0.5" min="0" class="' + inputCls + '" value="' + state.rate + '"></div>';
+    h += '<div class="flex-1"></div></div>';
+
+    h += '<div class="rounded-2xl bg-zinc-900/60 border p-4 mb-4 ' + (editing ? "border-emerald-500/40" : "border-zinc-800") + '">';
+    h += '<div class="font-semibold mb-3">' + (editing ? "Edit shift" : "Add a shift (day wise)") + '</div>';
+    h += '<div class="grid grid-cols-2 md:grid-cols-5 gap-3">';
+    h += '<div><label class="' + labelCls + '">Date</label><input id="f-date" type="date" class="' + inputCls + '" value="' + (editing ? editing.date : todayStr()) + '"></div>';
+    h += '<div><label class="' + labelCls + '">Scheduled in</label><input id="f-sin" type="time" class="' + inputCls + '" value="' + (editing && editing.schedIn ? editing.schedIn : "") + '"></div>';
+    h += '<div><label class="' + labelCls + '">Scheduled out</label><input id="f-sout" type="time" class="' + inputCls + '" value="' + (editing && editing.schedOut ? editing.schedOut : "") + '"></div>';
+    h += '<div><label class="' + labelCls + '">Actual in</label><input id="f-ain" type="time" class="' + inputCls + '" value="' + (editing && editing.actIn ? editing.actIn : "") + '"></div>';
+    h += '<div><label class="' + labelCls + '">Actual out</label><input id="f-aout" type="time" class="' + inputCls + '" value="' + (editing && editing.actOut ? editing.actOut : "") + '"></div>';
+    h += '</div>';
+    h += '<div class="mt-3"><label class="' + labelCls + '">Note (optional)</label>';
+    h += '<input id="f-note" class="' + inputCls + '" placeholder="e.g. split shift, covered for someone" value="' + (editing && editing.note ? esc(editing.note) : "") + '"></div>';
+    h += '<div class="flex gap-2 mt-4">';
+    h += '<button data-act="save" class="px-4 py-2 rounded-xl bg-emerald-500 text-zinc-950 font-semibold text-sm hover:bg-emerald-400">' + (editing ? "Save changes" : "Add shift") + '</button>';
+    if (editing) h += '<button data-act="cancel" class="px-4 py-2 rounded-xl bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700">Cancel</button>';
+    h += '</div></div>';
+
+    if (ms.length > 0) {
+      h += '<div class="flex flex-wrap gap-2 mb-4">';
+      h += '<button data-act="month" data-v="All" class="' + chipCls(ui.month === "All") + '">All</button>';
+      ms.forEach(function (m) { h += '<button data-act="month" data-v="' + m + '" class="' + chipCls(ui.month === m) + '">' + monthTitle(m) + '</button>'; });
+      h += '</div>';
     }
+
     h += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">';
-    h += statCard("Owner scheduled", fmt(t.sched), "", "sky");
-    h += statCard("My worked", fmt(t.act), "", "green");
-    h += statCard("Difference", (t.diff >= 0 ? "+" : "-") + fmt(Math.abs(t.diff)), "", t.diff < 0 ? "rose" : "green");
-    h += statCard("Mismatches", String(t.mismatch), t.exact + " exact of " + rows.length + " days", t.mismatch > 0 ? "amber" : "green");
+    h += statCard("Owner scheduled", fmt(t.sched), t.count + " entries", "sky");
+    h += statCard("My worked", fmt(t.worked), t.matched + " of " + t.compared + " days match", "green");
+    h += statCard("Difference", signed(t.diff), t.mismatch + " mismatches", t.diff < 0 ? "rose" : "green");
+    h += statCard("Pay", (t.worked / 60 * state.rate).toFixed(2) + " EUR", "at " + state.rate + " EUR/h", "amber");
     h += '</div>';
 
-    rows.forEach(function (r) {
-      h += '<div class="rounded-2xl bg-zinc-900/60 border p-4 mb-2.5 ' + (r.exact ? "border-zinc-800" : "border-amber-500/40") + '">';
-      h += '<div class="flex items-start justify-between gap-2"><div>';
-      h += '<div class="font-semibold">' + esc(dayLabel(r.date)) + '</div>';
-      h += '<div class="text-xs text-sky-300/90 mt-1">Owner: ' + (r.schedIn ? esc(r.schedIn) + ' - ' + esc(r.schedOut) + ' (' + fmt(r.sd) + ')' : "no timing found") + '</div>';
-      h += '<div class="text-sm text-zinc-200 mt-0.5">Mine: ' + (r.actIn ? esc(r.actIn) + ' - ' + esc(r.actOut) + ' (' + fmt(r.ad) + ')' : "no record found") + '</div>';
-      h += '<div class="text-xs text-zinc-500 mt-1">Date: ' + esc(r.date) + '</div>';
-      if (r.inDiff !== null && r.inDiff !== 0) h += '<div class="text-xs mt-1 text-rose-400">Clock-in: ' + (r.inDiff > 0 ? r.inDiff + " min late" : (-r.inDiff) + " min early") + '</div>';
-      if (r.outDiff !== null && r.outDiff !== 0) h += '<div class="text-xs mt-0.5 ' + (r.outDiff < 0 ? "text-rose-400" : "text-emerald-400") + '">Clock-out: ' + (r.outDiff > 0 ? r.outDiff + " min after scheduled end" : (-r.outDiff) + " min before scheduled end") + '</div>';
-      if (r.diff !== null && r.diff !== 0) h += '<div class="text-xs mt-1 font-semibold ' + (r.diff < 0 ? "text-rose-400" : "text-emerald-400") + '">Hours difference: ' + (r.diff > 0 ? "+" : "") + fmt(r.diff) + '</div>';
-      h += '</div>';
-      h += '<span class="px-2.5 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ' + r.cls + '">' + r.status + '</span>';
-      h += '</div></div>';
-    });
+    h += '<div class="mb-4">';
+    if (list.length === 0) h += '<div class="text-center text-zinc-500 py-8 rounded-2xl border-2 border-dashed border-zinc-700 text-sm">No shifts yet. Add one above or load timings from files.</div>';
+    list.forEach(function (e) { h += entryHtml(e); });
+    h += '</div>';
 
-    h += '<button id="btn-copy" class="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-sm font-semibold text-zinc-300 hover:border-zinc-600 mb-2 mt-3">Copy full report</button>';
-    h += '<button id="btn-wa" class="w-full py-3 rounded-2xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500">Share on WhatsApp</button>';
-    el.innerHTML = h;
-    document.getElementById("btn-copy").onclick = function () {
-      var report = buildReport(buildRows(), t);
+    if (list.length > 0) {
+      h += '<button data-act="copy" class="w-full py-3 rounded-2xl bg-zinc-900 border border-zinc-800 text-sm font-semibold text-zinc-300 hover:border-zinc-600 mb-2">' + (ui.copied ? "Copied! Paste it anywhere" : "Copy full tally report") + '</button>';
+      h += '<button data-act="wa" class="w-full py-3 rounded-2xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 mb-2">Share tally on WhatsApp</button>';
+      h += '<button data-act="clear" class="w-full py-2.5 rounded-2xl text-xs text-zinc-500 hover:text-rose-400">Clear all shifts on this device</button>';
+    }
+
+    document.getElementById("app").innerHTML = h;
+  }
+
+  function onAction(act, el) {
+    if (act === "save") {
+      var date = document.getElementById("f-date").value;
+      if (!date) { alert("Please choose a date."); return; }
+      var entry = {
+        id: ui.editingId || uid(),
+        date: date,
+        schedIn: document.getElementById("f-sin").value || null,
+        schedOut: document.getElementById("f-sout").value || null,
+        actIn: document.getElementById("f-ain").value || null,
+        actOut: document.getElementById("f-aout").value || null,
+        note: document.getElementById("f-note").value || null
+      };
+      if (ui.editingId) state.entries = state.entries.map(function (e) { return e.id === ui.editingId ? entry : e; });
+      else state.entries.push(entry);
+      ui.editingId = null;
+      save(); render();
+    } else if (act === "cancel") { ui.editingId = null; render(); }
+    else if (act === "edit") { ui.editingId = el.getAttribute("data-id"); render(); window.scrollTo(0, 0); }
+    else if (act === "del") {
+      var id = el.getAttribute("data-id");
+      if (confirm("Delete this shift?")) {
+        state.entries = state.entries.filter(function (e) { return e.id !== id; });
+        if (ui.editingId === id) ui.editingId = null;
+        save(); render();
+      }
+    } else if (act === "month") { ui.month = el.getAttribute("data-v"); render(); }
+    else if (act === "clear") {
+      if (confirm("Clear all shifts on this device?")) { state.entries = []; save(); render(); }
+    } else if (act === "copy") {
       if (navigator.clipboard) {
-        navigator.clipboard.writeText(report);
-        this.textContent = "Copied! Paste it anywhere";
-        var btn = this;
-        setTimeout(function () { btn.textContent = "Copy full report"; }, 1500);
-      } else alert(report);
-    };
-    document.getElementById("btn-wa").onclick = function () {
-      window.open("https://wa.me/?text=" + encodeURIComponent(buildReport(buildRows(), t)), "_blank");
-    };
+        navigator.clipboard.writeText(buildReport()).then(function () {
+          ui.copied = true; render();
+          setTimeout(function () { ui.copied = false; render(); }, 1500);
+        }).catch(function () {});
+      } else alert(buildReport());
+    } else if (act === "wa") {
+      window.open("https://wa.me/?text=" + encodeURIComponent(buildReport()), "_blank");
+    }
   }
 
-  function saveLS() {
-    try { localStorage.setItem(LS, JSON.stringify({ o: txtOwner.value, m: txtMine.value })); } catch (e) {}
-  }
-  function loadLS() {
-    try {
-      var raw = localStorage.getItem(LS);
-      if (raw) { var s = JSON.parse(raw); txtOwner.value = s.o || ""; txtMine.value = s.m || ""; }
-    } catch (e) {}
-  }
+  document.getElementById("app").addEventListener("click", function (ev) {
+    var el = ev.target.closest ? ev.target.closest("[data-act]") : null;
+    if (el) onAction(el.getAttribute("data-act"), el);
+  });
+  document.getElementById("app").addEventListener("change", function (ev) {
+    if (ev.target.id === "rate-input") { state.rate = Number(ev.target.value) || 0; save(); render(); }
+  });
 
   function setStatus(side, msg, err) {
     var el = side === "owner" ? stOwner : stMine;
     el.textContent = msg;
-    el.className = "text-xs min-h-[16px] mb-2 " + (err ? "text-rose-400" : "text-zinc-400");
+    el.className = "text-xs min-h-[16px] mb-1 " + (err ? "text-rose-400" : "text-zinc-400");
   }
 
   async function extractExcel(file) {
@@ -293,28 +428,32 @@
     setStatus(side, "Processing " + name + "...", false);
     try {
       var text = "";
-      if (ext === ".xlsx" || ext === ".xls" || ext === ".xlsm" || ext === ".csv") {
-        text = await extractExcel(file);
-      } else if (ext === ".pdf") {
-        text = await extractPdf(file);
-      } else if (file.type.indexOf("image") === 0 || [".png", ".jpg", ".jpeg", ".webp", ".bmp"].indexOf(ext) !== -1) {
+      if (ext === ".xlsx" || ext === ".xls" || ext === ".xlsm" || ext === ".csv") text = await extractExcel(file);
+      else if (ext === ".pdf") text = await extractPdf(file);
+      else if (file.type.indexOf("image") === 0 || [".png", ".jpg", ".jpeg", ".webp", ".bmp"].indexOf(ext) !== -1) {
         if (typeof Tesseract === "undefined") throw new Error("OCR engine could not load. Check your internet connection.");
         text = await extractImage(file, function (msg) { setStatus(side, msg, false); });
-      } else {
-        text = await file.text();
-      }
-      if (side === "owner") txtOwner.value = text; else txtMine.value = text;
-      saveLS();
-      var days = parseSheet(text, side === "owner" ? "sched" : "act").length;
-      setStatus(side, name + ": extracted " + days + " dated timing(s). Review the text above, edit if needed, then press Compare and tally.", false);
-      updateResults();
+      } else text = await file.text();
+      applyText(side, text, name);
     } catch (err) {
       setStatus(side, "Could not read the file: " + (err && err.message ? err.message : String(err)), true);
     }
   }
 
+  function applyText(side, text, name) {
+    var parsed = parseSheet(text, side === "owner" ? "sched" : "act");
+    if (parsed.length === 0) {
+      setStatus(side, (name ? name + ": " : "") + "No dated timings found in the file.", true);
+      return;
+    }
+    var r = applyParsed(side, parsed);
+    setStatus(side, (name ? name + ": " : "") + "Found " + parsed.length + " dated timing(s). Added " + r.added + " day(s), updated " + r.updated + ".", false);
+  }
+
   document.getElementById("file-owner").addEventListener("change", function () { processFile("owner", this.files[0]); });
   document.getElementById("file-mine").addEventListener("change", function () { processFile("mine", this.files[0]); });
+  document.getElementById("load-owner-text").addEventListener("click", function () { applyText("owner", document.getElementById("text-owner").value, ""); });
+  document.getElementById("load-mine-text").addEventListener("click", function () { applyText("mine", document.getElementById("text-mine").value, ""); });
 
   function wireDrop(id, side) {
     var zone = document.getElementById(id);
@@ -327,17 +466,7 @@
   wireDrop("drop-owner", "owner");
   wireDrop("drop-mine", "mine");
 
-  txtOwner.addEventListener("input", saveLS);
-  txtMine.addEventListener("input", saveLS);
-  document.getElementById("btn-compare").addEventListener("click", updateResults);
-  document.getElementById("btn-clear").addEventListener("click", function () {
-    txtOwner.value = ""; txtMine.value = ""; saveLS(); updateResults();
-    stOwner.textContent = ""; stMine.textContent = "";
-  });
-
-  if (typeof XLSX !== "undefined") XLSX.read;
-  loadLS();
-  updateResults();
+  render();
 })();
 </script>
 </body>
