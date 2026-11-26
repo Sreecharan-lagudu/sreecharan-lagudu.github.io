@@ -50,8 +50,8 @@
 <script>
 (function () {
   var NL = String.fromCharCode(10);
-  var LS = "shift-tally-v3";
-  var OLD_LS = "shift-tally-v2";
+  var LS = "shift-tally-v4";
+  var OLD_LS = ["shift-tally-v3", "shift-tally-v2"];
   var state = { entries: [], rate: 8 };
   var ui = { editingId: null, month: "All", copied: false };
   var stOwner = document.getElementById("s-owner");
@@ -80,11 +80,45 @@
     return changed;
   }
 
+  // Dedupe repeated note segments (kept segments in original order).
+  function normalizeNotes() {
+    var changed = false;
+    state.entries.forEach(function (e) {
+      if (!e.note) return;
+      var parts = e.note.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
+      var seen = {};
+      var out = [];
+      parts.forEach(function (p) {
+        if (seen[p]) { changed = true; return; }
+        seen[p] = true;
+        out.push(p);
+      });
+      var nn = out.join("; ");
+      if (nn !== e.note) { e.note = out.length ? nn : null; changed = true; }
+    });
+    if (changed) save();
+  }
+
+  // One-time cleanup for data saved by older versions: their note-adding bug filled
+  // "2nd ..." segments with wrong/repeated values, so drop all of them on migration.
+  function stripSecondNotes() {
+    state.entries.forEach(function (e) {
+      if (!e.note) return;
+      var parts = e.note.split(";").map(function (s) { return s.trim(); }).filter(Boolean);
+      var out = parts.filter(function (p) { return p.indexOf("2nd ") !== 0; });
+      var nn = out.join("; ");
+      if (nn !== e.note) e.note = out.length ? nn : null;
+    });
+  }
+
   try {
     var raw = localStorage.getItem(LS);
-    if (!raw) raw = localStorage.getItem(OLD_LS);
+    var legacy = !raw;
+    for (var qi = 0; !raw && qi < OLD_LS.length; qi++) raw = localStorage.getItem(OLD_LS[qi]);
     if (raw) { var s = JSON.parse(raw); if (s) { state.entries = s.entries || []; state.rate = s.rate || 8; } }
     if (dedupeAll()) save();
+    if (legacy) { stripSecondNotes(); save(); }
+    normalizeNotes();
   } catch (e) {}
 
   function save() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
@@ -94,6 +128,19 @@
   function dur(a, b) { if (a === null || b === null) return null; var d = b - a; if (d < 0) d += 1440; return d; }
   function fmt(d) { if (d === null) return "-"; var h = Math.floor(d / 60); var m = d % 60; return m === 0 ? h + "h" : h + "h " + pad(m) + "m"; }
   function signed(d) { return (d >= 0 ? "+" : "-") + fmt(Math.abs(d)); }
+  // Extra shifts recorded in notes ("2nd owner shift HH:MM-HH:MM" / "2nd shift HH:MM-HH:MM").
+  function noteExtras(e) {
+    var own = 0, mine = 0;
+    if (!e.note) return { own: own, mine: mine };
+    var re = /2nd (owner )?shift (\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})/g;
+    var m;
+    while ((m = re.exec(e.note)) !== null) {
+      var mins = (Number(m[4]) * 60 + Number(m[5])) - (Number(m[2]) * 60 + Number(m[3]));
+      if (mins < 0) mins += 1440;
+      if (m[1]) own += mins; else mine += mins;
+    }
+    return { own: own, mine: mine };
+  }
   function esc(s) {
     return String(s === undefined || s === null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
@@ -166,12 +213,18 @@
       if (side === "owner") {
         if (!target.schedIn) { target.schedIn = p.schedIn; target.schedOut = p.schedOut; }
         else if (target.schedIn === p.schedIn && target.schedOut === p.schedOut) { /* same values, skip */ }
-        else { seg = "2nd owner shift " + p.schedIn + "-" + p.schedOut; target.note = target.note ? target.note + "; " + seg : seg; }
+        else {
+          seg = "2nd owner shift " + p.schedIn + "-" + p.schedOut;
+          if (!target.note || target.note.indexOf(seg) === -1) target.note = target.note ? target.note + "; " + seg : seg;
+        }
         if (p.actIn && !target.actIn) { target.actIn = p.actIn; target.actOut = p.actOut; }
       } else {
         if (!target.actIn) { target.actIn = p.actIn; target.actOut = p.actOut; }
         else if (target.actIn === p.actIn && target.actOut === p.actOut) { /* same values, skip */ }
-        else { seg = "2nd shift " + p.actIn + "-" + p.actOut; target.note = target.note ? target.note + "; " + seg : seg; }
+        else {
+          seg = "2nd shift " + p.actIn + "-" + p.actOut;
+          if (!target.note || target.note.indexOf(seg) === -1) target.note = target.note ? target.note + "; " + seg : seg;
+        }
         if (p.schedIn && !target.schedIn) { target.schedIn = p.schedIn; target.schedOut = p.schedOut; }
       }
     });
@@ -181,11 +234,18 @@
 
   function statusFor(e) {
     var aIn = toMin(e.actIn), sIn = toMin(e.schedIn);
-    if (sIn !== null && aIn === null) return { text: "Not worked", cls: CLS.rose };
-    if (sIn === null && aIn !== null) return { text: "Extra shift", cls: CLS.sky };
-    if (sIn !== null && aIn !== null) {
-      if (e.schedIn === e.actIn && e.schedOut === e.actOut) return { text: "Match", cls: CLS.green };
-      var diff = dur(aIn, toMin(e.actOut)) - dur(sIn, toMin(e.schedOut));
+    var x = noteExtras(e);
+    if (sIn !== null && aIn === null && x.mine === 0 && x.own === 0) return { text: "Not worked", cls: CLS.rose };
+    if (sIn === null && aIn !== null && x.own === 0) return { text: "Extra shift", cls: CLS.sky };
+    var sd = dur(sIn, toMin(e.schedOut));
+    var ad = dur(aIn, toMin(e.actOut));
+    var effSd = (sd === null ? 0 : sd) + x.own;
+    var effAd = (ad === null ? 0 : ad) + x.mine;
+    if ((sIn !== null || x.own > 0) && (aIn !== null || x.mine > 0)) {
+      if (e.schedIn === e.actIn && e.schedOut === e.actOut && x.own === x.mine) return { text: "Match", cls: CLS.green };
+      if (effAd === 0) return { text: "Not worked", cls: CLS.rose };
+      if (effSd === 0) return { text: "Extra shift", cls: CLS.sky };
+      var diff = effAd - effSd;
       if (diff === 0) return { text: "Hours match, times differ", cls: CLS.amber };
       if (diff > 0) return { text: "+" + fmt(diff) + " extra", cls: CLS.green };
       return { text: fmt(-diff) + " short", cls: CLS.amber };
@@ -211,12 +271,12 @@
     list.forEach(function (e) {
       var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
       var ad = dur(toMin(e.actIn), toMin(e.actOut));
-      if (e.actIn && sd !== null) t.sched += sd;
-      if (ad !== null) t.worked += ad;
-      if (e.actIn && e.schedIn) {
-        t.compared++;
-        if (e.schedIn === e.actIn && e.schedOut === e.actOut) t.matched++; else t.mismatch++;
-      }
+      var x = noteExtras(e);
+      if (sd !== null) t.sched += sd + x.own;
+      if (ad !== null) t.worked += ad + x.mine;
+      if (e.actIn && e.schedIn) t.compared++;
+      if ((e.schedIn || e.actIn) && statusFor(e).text !== "Match") t.mismatch++;
+      else if (e.schedIn && e.actIn && statusFor(e).text === "Match") t.matched++;
     });
     t.diff = t.worked - t.sched;
     return t;
@@ -229,7 +289,12 @@
       if (st.text === "Match") return;
       var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
       var ad = dur(toMin(e.actIn), toMin(e.actOut));
-      out.push({ e: e, st: st, sd: sd, ad: ad, diff: (sd !== null && ad !== null) ? ad - sd : null });
+      var x = noteExtras(e);
+      var esd = (sd === null ? 0 : sd) + x.own;
+      var ead = (ad === null ? 0 : ad) + x.mine;
+      var hasOwn = sd !== null || x.own > 0;
+      var hasMine = ad !== null || x.mine > 0;
+      out.push({ e: e, st: st, sd: esd, ad: ead, diff: (hasOwn && hasMine) ? ead - esd : null });
     });
     return out;
   }
@@ -307,15 +372,18 @@
     var st = statusFor(e);
     var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
     var ad = dur(toMin(e.actIn), toMin(e.actOut));
+    var x = noteExtras(e);
+    var eSd = sd === null ? null : sd + x.own;
+    var eAd = ad === null ? null : ad + x.mine;
     var inDiff = (e.schedIn && e.actIn) ? toMin(e.actIn) - toMin(e.schedIn) : null;
     var outDiff = (e.schedOut && e.actOut) ? toMin(e.actOut) - toMin(e.schedOut) : null;
-    var mismatch = e.schedIn && e.actIn && !(e.schedIn === e.actIn && e.schedOut === e.actOut);
+    var mismatch = (e.schedIn || e.actIn) && st.text !== "Match";
     var h = '<div class="rounded-2xl bg-zinc-900/60 border p-4 mb-2.5 ' + (mismatch ? "border-amber-500/40" : "border-zinc-800") + '">';
     h += '<div class="flex items-start justify-between gap-2"><div>';
     h += '<div class="font-semibold">' + dayLabel(e.date) + '</div>';
-    h += '<div class="text-xs text-sky-300/90 mt-1">Owner: ' + (e.schedIn ? esc(e.schedIn) + ' - ' + esc(e.schedOut) + (sd !== null ? ' (' + fmt(sd) + ')' : '') : 'not scheduled') + '</div>';
+    h += '<div class="text-xs text-sky-300/90 mt-1">Owner: ' + (e.schedIn ? esc(e.schedIn) + ' - ' + esc(e.schedOut) + (eSd !== null ? ' (' + fmt(eSd) + ')' : '') : 'not scheduled') + '</div>';
     var workedTxt = "no record";
-    if (e.actIn && e.actOut) workedTxt = esc(e.actIn) + ' - ' + esc(e.actOut) + (ad !== null ? ' (' + fmt(ad) + ')' : '');
+    if (e.actIn && e.actOut) workedTxt = esc(e.actIn) + ' - ' + esc(e.actOut) + (eAd !== null ? ' (' + fmt(eAd) + ')' : '');
     else if (e.actIn) workedTxt = "from " + esc(e.actIn) + " (no clock-out)";
     h += '<div class="text-sm text-zinc-200 mt-0.5">Worked: ' + workedTxt + '</div>';
     if (inDiff !== null && inDiff !== 0) h += '<div class="text-xs mt-1 text-rose-400">Clocked in ' + (inDiff > 0 ? inDiff + " min late" : (-inDiff) + " min early") + '</div>';
