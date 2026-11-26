@@ -15,14 +15,14 @@
 <div class="max-w-2xl mx-auto p-4 pb-16">
   <div class="mb-2">
     <h1 class="text-2xl font-bold">Shift Tally</h1>
-    <p class="text-sm text-zinc-400">Load the owner timings and your records (files or day-wise entry). The tally shows the total difference and exactly which days do not match, and by how much.</p>
+    <p class="text-sm text-zinc-400">One entry per day: owner timings above, your worked timings below. Re-uploading a file simply refreshes those days, and never duplicates them. The tally shows the total difference and exactly which days do not match.</p>
     <p class="text-sm mt-1"><a href="/shift-logger/" class="text-emerald-400 underline">Open the Shift Logger</a></p>
   </div>
 
   <div class="grid md:grid-cols-2 gap-3 mb-4">
     <div id="drop-owner" class="rounded-2xl bg-zinc-900/60 border border-sky-500/30 p-4">
-      <div class="font-semibold text-sky-300 text-sm mb-1">Load owner timings from file</div>
-      <div class="text-xs text-zinc-500 mb-2">Owner schedule (xlsx, xls, csv, PDF, photo or text).</div>
+      <div class="font-semibold text-sky-300 text-sm mb-1">Load owner timings</div>
+      <div class="text-xs text-zinc-500 mb-2">Owner schedule (xlsx, xls, csv, PDF, photo or text). Updates only those days.</div>
       <input id="file-owner" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt,.md,.json,.pdf,image/*" class="w-full text-xs text-zinc-300 mb-2">
       <div id="s-owner" class="text-xs text-zinc-400 min-h-[16px] mb-1"></div>
       <details class="text-xs text-zinc-400">
@@ -32,8 +32,8 @@
       </details>
     </div>
     <div id="drop-mine" class="rounded-2xl bg-zinc-900/60 border border-emerald-500/30 p-4">
-      <div class="font-semibold text-emerald-300 text-sm mb-1">Load my records from file</div>
-      <div class="text-xs text-zinc-500 mb-2">Your worked hours in any of the same formats.</div>
+      <div class="font-semibold text-emerald-300 text-sm mb-1">Load my records</div>
+      <div class="text-xs text-zinc-500 mb-2">Your worked hours in any of the same formats. Updates only those days.</div>
       <input id="file-mine" type="file" accept=".xlsx,.xls,.xlsm,.csv,.txt,.md,.json,.pdf,image/*" class="w-full text-xs text-zinc-300 mb-2">
       <div id="s-mine" class="text-xs text-zinc-400 min-h-[16px] mb-1"></div>
       <details class="text-xs text-zinc-400">
@@ -50,7 +50,8 @@
 <script>
 (function () {
   var NL = String.fromCharCode(10);
-  var LS = "shift-tally-v2";
+  var LS = "shift-tally-v3";
+  var OLD_LS = "shift-tally-v2";
   var state = { entries: [], rate: 8 };
   var ui = { editingId: null, month: "All", copied: false };
   var stOwner = document.getElementById("s-owner");
@@ -58,9 +59,32 @@
   var MONTHS = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
   var YEAR = new Date().getFullYear();
 
+  // Merge any duplicate same-date entries into one day entry.
+  function dedupeAll() {
+    var byDate = {};
+    var order = [];
+    var changed = false;
+    state.entries.forEach(function (e) {
+      if (!byDate[e.date]) {
+        byDate[e.date] = { id: e.id, date: e.date, schedIn: e.schedIn, schedOut: e.schedOut, actIn: e.actIn, actOut: e.actOut, note: e.note };
+        order.push(e.date);
+      } else {
+        changed = true;
+        var t = byDate[e.date];
+        if (!t.schedIn && e.schedIn) { t.schedIn = e.schedIn; t.schedOut = e.schedOut; }
+        if (!t.actIn && e.actIn) { t.actIn = e.actIn; t.actOut = e.actOut; }
+        if (e.note && (!t.note || t.note.indexOf(e.note) === -1)) t.note = t.note ? t.note + "; " + e.note : e.note;
+      }
+    });
+    if (changed) state.entries = order.map(function (d) { return byDate[d]; });
+    return changed;
+  }
+
   try {
     var raw = localStorage.getItem(LS);
+    if (!raw) raw = localStorage.getItem(OLD_LS);
     if (raw) { var s = JSON.parse(raw); if (s) { state.entries = s.entries || []; state.rate = s.rate || 8; } }
+    if (dedupeAll()) save();
   } catch (e) {}
 
   function save() { try { localStorage.setItem(LS, JSON.stringify(state)); } catch (e) {} }
@@ -106,7 +130,7 @@
       var line = lines[i].trim();
       if (!line) continue;
       var times = [];
-      var tRe = /(?:^|[^0-9:.h])([01]?[0-9]|2[0-3])[.:h]([0-5][0-9])(?![0-9])/g;
+      var tRe = /(?:^|[^0-9:.])([01]?[0-9]|2[0-3])[.:]([0-5][0-9])(?![0-9])/g;
       var m;
       while ((m = tRe.exec(line)) !== null) times.push(m[1] + ":" + m[2]);
       var dateKey = findDate(line);
@@ -125,43 +149,34 @@
     return entries;
   }
 
-  function pairMatches(e, side, p) {
-    if (side === "owner") return e.schedIn === p.schedIn && e.schedOut === p.schedOut;
-    return e.actIn === p.actIn && e.actOut === p.actOut;
-  }
-
+  // One entry per date. Re-uploading refreshes that day instead of creating a copy.
   function applyParsed(side, parsed) {
-    var used = {};
-    var added = 0, updated = 0, dupes = 0;
+    var added = 0, updated = 0;
     parsed.forEach(function (p) {
-      var dup = false;
-      for (var k = 0; k < state.entries.length; k++) {
-        if (state.entries[k].date === p.date && pairMatches(state.entries[k], side, p)) { dup = true; break; }
-      }
-      if (dup) { dupes++; return; }
       var target = null;
       for (var i = 0; i < state.entries.length; i++) {
-        var e = state.entries[i];
-        if (e.date !== p.date || used[e.id]) continue;
-        if (side === "owner" && !e.schedIn) { target = e; break; }
-        if (side === "mine" && !e.actIn) { target = e; break; }
+        if (state.entries[i].date === p.date) { target = state.entries[i]; break; }
       }
       if (!target) {
         target = { id: uid(), date: p.date, schedIn: null, schedOut: null, actIn: null, actOut: null, note: null };
         state.entries.push(target);
         added++;
       } else updated++;
-      used[target.id] = true;
+      var seg;
       if (side === "owner") {
-        target.schedIn = p.schedIn; target.schedOut = p.schedOut;
-        if (p.actIn) { target.actIn = p.actIn; target.actOut = p.actOut; }
+        if (!target.schedIn) { target.schedIn = p.schedIn; target.schedOut = p.schedOut; }
+        else if (target.schedIn === p.schedIn && target.schedOut === p.schedOut) { /* same values, skip */ }
+        else { seg = "2nd owner shift " + p.schedIn + "-" + p.schedOut; target.note = target.note ? target.note + "; " + seg : seg; }
+        if (p.actIn && !target.actIn) { target.actIn = p.actIn; target.actOut = p.actOut; }
       } else {
-        target.actIn = p.actIn; target.actOut = p.actOut;
-        if (p.schedIn) { target.schedIn = p.schedIn; target.schedOut = p.schedOut; }
+        if (!target.actIn) { target.actIn = p.actIn; target.actOut = p.actOut; }
+        else if (target.actIn === p.actIn && target.actOut === p.actOut) { /* same values, skip */ }
+        else { seg = "2nd shift " + p.actIn + "-" + p.actOut; target.note = target.note ? target.note + "; " + seg : seg; }
+        if (p.schedIn && !target.schedIn) { target.schedIn = p.schedIn; target.schedOut = p.schedOut; }
       }
     });
     save(); render();
-    return { added: added, updated: updated, dupes: dupes };
+    return { added: added, updated: updated };
   }
 
   function statusFor(e) {
@@ -196,13 +211,12 @@
     list.forEach(function (e) {
       var sd = dur(toMin(e.schedIn), toMin(e.schedOut));
       var ad = dur(toMin(e.actIn), toMin(e.actOut));
-      if (sd !== null) t.sched += sd;
+      if (e.actIn && sd !== null) t.sched += sd;
       if (ad !== null) t.worked += ad;
       if (e.actIn && e.schedIn) {
         t.compared++;
-        if (e.schedIn === e.actIn && e.schedOut === e.actOut) t.matched++;
+        if (e.schedIn === e.actIn && e.schedOut === e.actOut) t.matched++; else t.mismatch++;
       }
-      if ((e.schedIn || e.actIn) && statusFor(e).text !== "Match") t.mismatch++;
     });
     t.diff = t.worked - t.sched;
     return t;
@@ -280,7 +294,7 @@
       mism.forEach(function (m) {
         var e = m.e;
         h += '<div class="text-xs text-zinc-300 py-1.5 border-t border-zinc-800 flex items-start justify-between gap-2">';
-        h += '<div><span class="font-semibold">' + dayLabel(e.date) + '</span> (' + e.date + '): owner ' + (e.schedIn ? e.schedIn + ' - ' + e.schedOut + ' (' + fmt(m.sd) + ')' : 'no timing') + ' | mine ' + (e.actIn && e.actOut ? e.actIn + ' - ' + e.actOut + ' (' + fmt(m.ad) + ')' : (e.actIn ? 'started ' + e.actIn + ', no clock-out' : 'no record'));
+        h += '<div><span class="font-semibold">' + dayLabel(e.date) + '</span> (' + e.date + '): owner ' + (e.schedIn ? e.schedIn + ' - ' + e.schedOut + ' (' + fmt(m.sd) + ')' : "no timing") + ' | mine ' + (e.actIn && e.actOut ? e.actIn + ' - ' + e.actOut + ' (' + fmt(m.ad) + ')' : (e.actIn ? "started " + e.actIn + ", no clock-out" : "no record"));
         if (m.diff !== null) h += ' | difference ' + signed(m.diff);
         h += '</div><span class="px-2 py-0.5 rounded-full text-xs font-semibold border whitespace-nowrap ' + m.st.cls + '">' + m.st.text + '</span>';
         h += '</div>';
@@ -352,7 +366,7 @@
     }
 
     h += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">';
-    h += statCard("Owner scheduled", fmt(t.sched), t.count + " entries", "sky");
+    h += statCard("Owner scheduled", fmt(t.sched), t.count + " days", "sky");
     h += statCard("My worked", fmt(t.worked), t.matched + " of " + t.compared + " days match", "green");
     h += statCard("Difference", signed(t.diff), t.mismatch + " days do not tally", t.diff < 0 ? "rose" : "green");
     h += statCard("Pay", (t.worked / 60 * state.rate).toFixed(2) + " EUR", "at " + state.rate + " EUR/h", "amber");
@@ -378,17 +392,29 @@
     if (act === "save") {
       var date = document.getElementById("f-date").value;
       if (!date) { alert("Please choose a date."); return; }
-      var entry = {
-        id: ui.editingId || uid(),
-        date: date,
-        schedIn: document.getElementById("f-sin").value || null,
-        schedOut: document.getElementById("f-sout").value || null,
-        actIn: document.getElementById("f-ain").value || null,
-        actOut: document.getElementById("f-aout").value || null,
-        note: document.getElementById("f-note").value || null
-      };
-      if (ui.editingId) state.entries = state.entries.map(function (e) { return e.id === ui.editingId ? entry : e; });
-      else state.entries.push(entry);
+      var existing = state.entries.filter(function (e2) { return e2.date === date && e2.id !== ui.editingId; })[0];
+      if (existing) {
+        if (!confirm(dayLabel(date) + " already has an entry. Save into that day instead of creating a duplicate? (OK = yes, Cancel = edit again)")) return;
+        if (ui.editingId) state.entries = state.entries.filter(function (e2) { return e2.id !== ui.editingId; });
+        existing.schedIn = document.getElementById("f-sin").value || existing.schedIn;
+        existing.schedOut = document.getElementById("f-sout").value || existing.schedOut;
+        existing.actIn = document.getElementById("f-ain").value || existing.actIn;
+        existing.actOut = document.getElementById("f-aout").value || existing.actOut;
+        var nt = document.getElementById("f-note").value;
+        if (nt) existing.note = existing.note ? existing.note + "; " + nt : nt;
+      } else {
+        var entry = {
+          id: ui.editingId || uid(),
+          date: date,
+          schedIn: document.getElementById("f-sin").value || null,
+          schedOut: document.getElementById("f-sout").value || null,
+          actIn: document.getElementById("f-ain").value || null,
+          actOut: document.getElementById("f-aout").value || null,
+          note: document.getElementById("f-note").value || null
+        };
+        if (ui.editingId) state.entries = state.entries.map(function (e2) { return e2.id === ui.editingId ? entry : e2; });
+        else state.entries.push(entry);
+      }
       ui.editingId = null;
       save(); render();
     } else if (act === "cancel") { ui.editingId = null; render(); }
@@ -396,7 +422,7 @@
     else if (act === "del") {
       var id = el.getAttribute("data-id");
       if (confirm("Delete this shift?")) {
-        state.entries = state.entries.filter(function (e) { return e.id !== id; });
+        state.entries = state.entries.filter(function (e2) { return e2.id !== id; });
         if (ui.editingId === id) ui.editingId = null;
         save(); render();
       }
@@ -501,9 +527,7 @@
       return;
     }
     var r = applyParsed(side, parsed);
-    var msg = (name ? name + ": " : "") + "Found " + parsed.length + " dated timing(s). Added " + r.added + " day(s), updated " + r.updated;
-    if (r.dupes > 0) msg += ", skipped " + r.dupes + " duplicate(s)";
-    setStatus(side, msg + ".", false);
+    setStatus(side, (name ? name + ": " : "") + "Loaded " + r.added + " new day(s), refreshed " + r.updated + " existing day(s). No duplicates created.", false);
   }
 
   document.getElementById("file-owner").addEventListener("change", function () { processFile("owner", this.files[0]); });
